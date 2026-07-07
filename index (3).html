@@ -1,0 +1,626 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ashley &amp; Aaron</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Jost:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --night:#211018; --night-2:#2C1622; --glow:#3A1E2C;
+    --parchment:#F4EEE2; --card:#FBF8F1; --card-2:#F8F3E9;
+    --ink:#2E2630; --soft:#6B6069; --line:#E5DBC9;
+    --wine:#7B2233; --wine-deep:#5C1A2E; --plum:#4A2540;
+    --rust:#B5723A; --brass:#C77D46;
+    --sage:#7C8B6B; --sage-deep:#5F6E50; --sage-tint:#E8ECDF;
+    --amber:#C79A4A; --amber-tint:#F1E4C6; --over-tint:#F3DED0;
+    --cream:#EDE3D3;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{background:var(--parchment); color:var(--ink);
+    font-family:'Jost',system-ui,-apple-system,sans-serif; font-size:16px; line-height:1.5;}
+  button{font-family:inherit; cursor:pointer;}
+  :focus-visible{outline:2px solid var(--wine); outline-offset:2px;}
+  .tnum{font-variant-numeric:tabular-nums;}
+  .hide{display:none !important;}
+
+  /* ---------- sign-in ---------- */
+  #signin{min-height:100vh; display:flex; flex-direction:column; align-items:center; justify-content:center;
+    text-align:center; padding:40px 24px;
+    background:
+      radial-gradient(120% 90% at 50% -10%, var(--glow) 0%, transparent 60%),
+      radial-gradient(80% 60% at 50% 120%, #341826 0%, transparent 60%),
+      var(--night);
+    color:var(--cream); position:relative; overflow:hidden;}
+  .flicker{position:absolute; inset:0; pointer-events:none;
+    background:radial-gradient(40% 30% at 50% 30%, rgba(199,125,70,.10), transparent 70%);
+    animation:flick 6s ease-in-out infinite;}
+  @keyframes flick{0%,100%{opacity:.7} 50%{opacity:1}}
+  @media (prefers-reduced-motion: reduce){ .flicker{animation:none;} }
+  .monogram{font-family:'Cormorant Garamond',serif; letter-spacing:1px; color:var(--cream);}
+  .crest{width:132px;height:132px;margin:0 auto 10px; position:relative; z-index:1;}
+  #signin .names{font-family:'Cormorant Garamond',serif; font-weight:500; font-size:clamp(40px,10vw,68px);
+    line-height:1.02; z-index:1;}
+  #signin .amp{font-style:italic; color:var(--brass);}
+  #signin .tag{color:#C9B4B8; letter-spacing:.24em; text-transform:uppercase; font-size:12px; margin-top:14px; z-index:1;}
+  .gbtn{margin-top:34px; z-index:1; display:inline-flex; align-items:center; gap:12px;
+    background:var(--cream); color:var(--night); border:none; border-radius:999px;
+    padding:14px 26px; font-weight:600; font-size:15px; box-shadow:0 10px 30px -12px rgba(0,0,0,.6);}
+  .gbtn:hover{background:#fff;}
+  .glogo{width:18px;height:18px;display:inline-block;}
+  #signin .fine{margin-top:18px; font-size:12px; color:#9A868C; z-index:1;}
+
+  /* ---------- app frame ---------- */
+  #app{min-height:100vh; display:flex; flex-direction:column;}
+  .topbar{background:var(--night); color:var(--cream); display:flex; align-items:center;
+    gap:18px; padding:12px 20px; position:sticky; top:0; z-index:20;}
+  .topbar .mark{font-family:'Cormorant Garamond',serif; font-size:22px; font-weight:600; letter-spacing:1px; color:var(--cream);}
+  .topbar .mark .amp{color:var(--brass); font-style:italic;}
+  nav.views{display:flex; gap:4px; margin-left:6px; flex:1; overflow-x:auto;}
+  nav.views button{background:transparent; border:none; color:#C9B4B8; padding:8px 12px; border-radius:8px;
+    font-size:14px; letter-spacing:.02em; white-space:nowrap;}
+  nav.views button:hover{color:var(--cream); background:rgba(255,255,255,.06);}
+  nav.views button.active{color:var(--cream);}
+  nav.views button.active{position:relative;}
+  nav.views button.active::after{content:""; position:absolute; left:12px; right:12px; bottom:2px; height:2px;
+    background:var(--brass); border-radius:2px;}
+  .signout{background:transparent; border:1px solid rgba(255,255,255,.18); color:#C9B4B8;
+    border-radius:999px; padding:7px 14px; font-size:13px;}
+  .signout:hover{color:var(--cream); border-color:rgba(255,255,255,.4);}
+  main{flex:1;}
+  .view{max-width:1080px; margin:0 auto; padding:26px 20px 80px;}
+  .view-enter{animation:fade .35s ease;}
+  @keyframes fade{from{opacity:0; transform:translateY(6px)} to{opacity:1; transform:none}}
+  @media (prefers-reduced-motion: reduce){ .view-enter{animation:none;} }
+
+  /* ---------- home ---------- */
+  .hero{margin:-26px -20px 0; padding:48px 24px 42px;
+    background:
+      radial-gradient(120% 100% at 50% -20%, var(--glow) 0%, transparent 60%),
+      var(--night);
+    color:var(--cream); text-align:center; position:relative; overflow:hidden;}
+  .hero .crest{width:120px;height:120px;}
+  .hero .names{font-family:'Cormorant Garamond',serif; font-weight:500; font-size:clamp(38px,8vw,62px); line-height:1.02;}
+  .hero .amp{font-style:italic; color:var(--brass);}
+  .countdown{margin-top:22px;}
+  .countdown .num{font-family:'Cormorant Garamond',serif; font-weight:600; font-size:clamp(54px,14vw,96px); line-height:.9; color:var(--cream);}
+  .countdown .lbl{letter-spacing:.26em; text-transform:uppercase; font-size:12px; color:#C9B4B8; margin-top:8px;}
+  .countdown .date{font-family:'Cormorant Garamond',serif; font-style:italic; font-size:20px; color:var(--brass); margin-top:6px;}
+  .setdate{margin-top:14px; background:transparent; border:1px solid rgba(255,255,255,.25); color:var(--cream);
+    border-radius:999px; padding:10px 20px; font-size:14px;}
+  .setdate:hover{border-color:var(--brass); color:var(--brass);}
+  .hero-photo{margin:26px auto 0; max-width:520px; border-radius:14px; overflow:hidden;
+    border:1px solid rgba(255,255,255,.14); position:relative; z-index:1;}
+  .hero-photo img{width:100%; display:block;}
+  .photo-empty{padding:34px; text-align:center; color:#B29AA0; font-size:14px;
+    border:1px dashed rgba(255,255,255,.22); border-radius:14px; margin:26px auto 0; max-width:520px;}
+  .photo-empty button{margin-top:10px; background:transparent; border:1px solid rgba(255,255,255,.25);
+    color:var(--cream); border-radius:999px; padding:8px 16px; font-size:13px;}
+
+  .pulse{display:grid; grid-template-columns:repeat(3,1fr); gap:14px; margin-top:26px;}
+  @media (max-width:640px){ .pulse{grid-template-columns:1fr;} }
+  .pcard{background:var(--card); border:1px solid var(--line); border-radius:14px; padding:16px 18px;}
+  .pcard .k{font-size:11px; letter-spacing:.16em; text-transform:uppercase; color:var(--soft);}
+  .pcard .v{font-family:'Cormorant Garamond',serif; font-weight:600; font-size:30px; margin-top:4px; color:var(--wine);}
+  .pcard .s{font-size:13px; color:var(--soft); margin-top:2px;}
+
+  .moods{display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-top:16px;}
+  @media (max-width:640px){ .moods{grid-template-columns:1fr;} }
+  .mood{border-radius:16px; padding:20px; color:var(--cream); min-height:120px; position:relative; overflow:hidden;}
+  .mood.ashton{background:linear-gradient(150deg,#3A1622,#5C1A2E);}
+  .mood.hoven{background:linear-gradient(150deg,#6E4A2C,#8A5A34);}
+  .mood .evt{letter-spacing:.2em; text-transform:uppercase; font-size:11px; opacity:.85;}
+  .mood .nm{font-family:'Cormorant Garamond',serif; font-size:26px; font-weight:600; margin-top:4px;}
+  .mood .place{font-style:italic; font-family:'Cormorant Garamond',serif; opacity:.9; margin-top:2px;}
+  .mood .rem{margin-top:12px; font-size:13px; opacity:.95;}
+
+  /* ---------- section headers ---------- */
+  .vhead{display:flex; align-items:baseline; justify-content:space-between; gap:12px; margin-bottom:18px;}
+  .vhead h2{font-family:'Cormorant Garamond',serif; font-weight:600; font-size:34px; color:var(--wine); margin:0;}
+  .vhead .sub{color:var(--soft); font-size:14px;}
+
+  /* ---------- budget ---------- */
+  .combined{display:flex; flex-wrap:wrap; gap:14px; margin-bottom:22px;}
+  .combined .stat{flex:1 1 150px; background:var(--card); border:1px solid var(--line); border-radius:12px; padding:14px 16px;}
+  .combined .lbl{font-size:11px; letter-spacing:.16em; text-transform:uppercase; color:var(--soft);}
+  .combined .val{font-family:'Cormorant Garamond',serif; font-weight:600; font-size:28px; margin-top:2px;}
+  .combined .hero .val{color:var(--wine);}
+
+  .events{display:grid; grid-template-columns:1fr 1fr; gap:20px;}
+  @media (max-width:820px){ .events{grid-template-columns:1fr;} }
+  .event{background:var(--card); border:1px solid var(--line); border-radius:16px; padding:20px;
+    box-shadow:0 6px 22px -18px rgba(46,38,48,.5);}
+  .event .en{font-family:'Cormorant Garamond',serif; font-weight:600; font-size:24px; color:var(--plum);}
+  .event .es{font-size:11px; letter-spacing:.2em; text-transform:uppercase; color:var(--soft); margin-bottom:14px;}
+  .caps{display:flex; gap:10px; margin-bottom:14px; flex-wrap:wrap;}
+  .capf{flex:1; min-width:96px;}
+  .capf label{display:block; font-size:10px; letter-spacing:.12em; text-transform:uppercase; color:var(--soft); margin-bottom:4px;}
+  .capf .m{position:relative;}
+  .capf .m::before{content:"$"; position:absolute; left:9px; top:50%; transform:translateY(-50%); color:var(--soft); font-size:13px;}
+  .capf input{width:100%; padding:8px 8px 8px 20px; border:1px solid var(--line); border-radius:8px; background:var(--card-2);
+    font-family:'Jost'; font-size:14px; color:var(--ink);}
+  .capf input:focus{outline:none; border-color:var(--wine); background:#fff;}
+
+  .meter-top{display:flex; align-items:flex-end; justify-content:space-between; margin:6px 0 8px;}
+  .remaining{font-family:'Cormorant Garamond',serif; font-weight:600; font-size:32px; line-height:1;}
+  .remaining small{display:block; font-family:'Jost'; font-weight:500; font-size:10px; letter-spacing:.14em;
+    text-transform:uppercase; color:var(--soft); margin-bottom:3px;}
+  .pill{font-size:11px; font-weight:600; letter-spacing:.06em; text-transform:uppercase; padding:5px 11px; border-radius:999px;}
+  .z-calm{background:var(--sage-tint); color:var(--sage-deep);}
+  .z-buffer{background:var(--amber-tint); color:#8a5a1c;}
+  .z-over{background:var(--over-tint); color:var(--wine);}
+  .z-empty{background:#EFE9DC; color:var(--soft);}
+  .track{position:relative; height:18px; border-radius:6px; overflow:hidden; background:#EDE6D6; border:1px solid var(--line);}
+  .zp{position:absolute; top:0; bottom:0; left:0; background:repeating-linear-gradient(45deg,var(--sage-tint),var(--sage-tint) 7px,#e2e7d6 7px,#e2e7d6 14px);}
+  .zb{position:absolute; top:0; bottom:0; background:repeating-linear-gradient(45deg,var(--amber-tint),var(--amber-tint) 7px,#ecdcb6 7px,#ecdcb6 14px);}
+  .fl{position:absolute; left:0; top:0; bottom:0; background:linear-gradient(var(--wine),var(--wine-deep)); transition:width .35s ease;}
+  .fl.over{background:linear-gradient(var(--rust),#9C5E2C);}
+  @media (prefers-reduced-motion: reduce){ .fl{transition:none;} }
+
+  .cats{margin-top:16px;}
+  .crow{display:grid; grid-template-columns:1.4fr .8fr .8fr .8fr auto; gap:8px; align-items:center; padding:8px 2px; border-bottom:1px solid #EFE9DC;}
+  .crow input[type=text]{width:100%; border:none; background:transparent; font-family:'Jost'; font-size:14.5px; color:var(--ink); padding:3px 2px; border-bottom:1px solid transparent;}
+  .crow input[type=text]:hover{border-bottom-color:var(--line);}
+  .crow input[type=text]:focus{outline:none; border-bottom-color:var(--wine);}
+  .crow .num{width:100%; border:1px solid transparent; background:#F6F1E6; border-radius:6px; font-family:'Jost'; font-size:13px; color:var(--ink); padding:5px 6px; text-align:right;}
+  .crow .num:focus{outline:none; border-color:var(--wine); background:#fff;}
+  .crow .tools{display:flex; align-items:center; gap:6px;}
+  .flexbtn{font-size:10px; font-weight:600; letter-spacing:.04em; text-transform:uppercase; border:1px solid var(--line);
+    background:#F6F1E6; color:var(--soft); border-radius:999px; padding:4px 8px;}
+  .flexbtn.flex{background:var(--sage-tint); color:var(--sage-deep); border-color:#cdd6bd;}
+  .flexbtn.lock{background:#EEE6D8; color:var(--plum); border-color:#e0d5c2;}
+  .del{border:none; background:transparent; color:var(--soft); font-size:16px; padding:2px 5px; border-radius:6px;}
+  .del:hover{color:var(--wine); background:#F3E7E4;}
+  .chead{display:grid; grid-template-columns:1.4fr .8fr .8fr .8fr auto; gap:8px; font-size:10px; letter-spacing:.1em;
+    text-transform:uppercase; color:var(--soft); padding:0 2px 6px; border-bottom:1px solid var(--line);}
+  .chead .rt{text-align:right;}
+  @media (max-width:560px){
+    .chead{display:none;}
+    .crow{grid-template-columns:1fr 1fr; border:1px solid #EFE9DC; border-radius:10px; padding:12px; margin-bottom:8px;}
+    .crow .cn{grid-column:1/-1;}
+    .crow .tools{grid-column:1/-1; justify-content:space-between;}
+  }
+  .addcat{margin-top:12px; width:100%; border:1px dashed var(--line); background:transparent; color:var(--wine);
+    font-weight:600; font-size:13px; padding:9px 14px; border-radius:9px;}
+  .addcat:hover{background:#F7EFE7; border-color:var(--wine);}
+  .cat-empty{padding:18px 4px; color:var(--soft); font-size:14px; text-align:center;}
+  .nudge{margin-top:14px; border:1px solid #e6c9a8; background:linear-gradient(#FBF1E2,#F7E9D6); border-radius:12px; padding:13px 15px;}
+  .nudge .h{font-family:'Cormorant Garamond',serif; font-size:17px; color:#9C5E2C; margin-bottom:3px;}
+  .nudge p{margin:0; font-size:13.5px; color:#6a5540;}
+
+  /* ---------- placeholder views ---------- */
+  .soon{background:var(--card); border:1px solid var(--line); border-radius:16px; padding:36px; text-align:center;}
+  .soon .em{font-family:'Cormorant Garamond',serif; font-size:26px; color:var(--plum); margin-bottom:8px;}
+  .soon p{color:var(--soft); max-width:440px; margin:0 auto; font-size:15px;}
+
+  .toast{position:fixed; bottom:20px; left:50%; transform:translateX(-50%); background:var(--night); color:var(--cream);
+    padding:11px 20px; border-radius:999px; font-size:14px; z-index:60; opacity:0; transition:opacity .25s; pointer-events:none;}
+  .toast.show{opacity:1;}
+</style>
+</head>
+<body>
+
+<!-- ============ SIGN IN ============ -->
+<section id="signin">
+  <div class="flicker"></div>
+  <div class="crest" id="signin-crest"></div>
+  <div class="names">Ashley <span class="amp">&amp;</span> Aaron</div>
+  <div class="tag">your wedding, in one place</div>
+  <button class="gbtn" id="googleBtn">
+    <span class="glogo" id="glogo"></span> Continue with Google
+  </button>
+  <div class="fine">Private to you. Only your sign-in can open it.</div>
+</section>
+
+<!-- ============ APP ============ -->
+<div id="app" class="hide">
+  <div class="topbar">
+    <div class="mark">A<span class="amp">&amp;</span>A</div>
+    <nav class="views" id="nav"></nav>
+    <button class="signout" id="signoutBtn">Sign out</button>
+  </div>
+  <main><div id="viewRoot"></div></main>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-app.js";
+import { getAuth, GoogleAuthProvider, signInWithPopup, signInWithRedirect, getRedirectResult, onAuthStateChanged, signOut }
+  from "https://www.gstatic.com/firebasejs/12.15.0/firebase-auth.js";
+import { getFirestore, doc, setDoc, onSnapshot, collection, addDoc, updateDoc, deleteDoc, query, orderBy, serverTimestamp }
+  from "https://www.gstatic.com/firebasejs/12.15.0/firebase-firestore.js";
+
+/* ---- your Firebase project ---- */
+const firebaseConfig = {
+  apiKey: "AIzaSyCAEZ5FVUzZrrbmmLq0RJzUjYvPPbWougY",
+  authDomain: "wedding-os-50658.firebaseapp.com",
+  projectId: "wedding-os-50658",
+  storageBucket: "wedding-os-50658.firebasestorage.app",
+  messagingSenderId: "182400692197",
+  appId: "1:182400692197:web:c6a68bd77e74f67e3f490c"
+};
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+const provider = new GoogleAuthProvider();
+
+/* If you host your cut assets, set this to that folder URL (trailing slash)
+   e.g. "https://akp-netizen.github.io/wedding-assets/". Blank = typographic crest. */
+const ASSET_BASE = "";
+
+const EVENTS = ["Ashton","Hoven"];
+const EVENT_LABEL = { Ashton:"Twilight Ceremony", Hoven:"Pasture Party" };
+const EVENT_PLACE = { Ashton:"Ashton, Iowa", Hoven:"Hoven, South Dakota" };
+const VIEWS = ["Home","Budget","Guests","Guide","Details"];
+
+let uid = null;
+let current = "Home";
+let unsub = [];
+let pendingRender = false;
+const state = {
+  profile: { weddingDate:null, heroPhoto:null },
+  config: { events: { Ashton:{cap:0,buffer:0,perPlate:0,foodCategory:"Food"}, Hoven:{cap:0,buffer:0,perPlate:0,foodCategory:"Food"} } },
+  budget: [],   // {id, event, category, estimated, actual, deposit, flexible}
+  guests: []    // later
+};
+
+/* ---------- tiny helpers ---------- */
+const $ = (s,r=document)=>r.querySelector(s);
+function money(n){ const x = isFinite(n)?Math.round(n):0; return "$"+x.toLocaleString("en-US"); }
+function num(v){ const n=parseFloat(v); return isFinite(n)?n:0; }
+function esc(s){ return String(s==null?"":s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;"); }
+function toast(msg){ const t=$("#toast"); t.textContent=msg; t.classList.add("show"); clearTimeout(t._t); t._t=setTimeout(()=>t.classList.remove("show"),1800); }
+
+const crestSVG = `<svg viewBox="0 0 120 120" width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
+  <circle cx="60" cy="60" r="52" fill="none" stroke="#C77D46" stroke-width="1.2" opacity="0.8"/>
+  <circle cx="60" cy="60" r="46" fill="none" stroke="#C77D46" stroke-width="0.6" opacity="0.5"/>
+  <text x="60" y="74" text-anchor="middle" font-family="Cormorant Garamond, serif" font-size="46" font-weight="600" fill="#EDE3D3">A<tspan font-style="italic" fill="#C77D46" font-size="30" dy="-2">&amp;</tspan>A</text>
+</svg>`;
+function crestHTML(){
+  if(ASSET_BASE){ return `<img src="${ASSET_BASE}00-crest.png" alt="Ashley and Aaron crest" style="width:100%;height:100%;object-fit:contain">`; }
+  return crestSVG;
+}
+const googleLogo = `<svg viewBox="0 0 48 48" width="18" height="18"><path fill="#EA4335" d="M24 9.5c3.5 0 6.6 1.2 9.1 3.6l6.8-6.8C35.9 2.4 30.4 0 24 0 14.6 0 6.5 5.4 2.6 13.2l7.9 6.1C12.4 13.2 17.7 9.5 24 9.5z"/><path fill="#4285F4" d="M46.1 24.5c0-1.6-.1-3.1-.4-4.5H24v9h12.4c-.5 2.9-2.1 5.3-4.5 7l7 5.4c4.1-3.8 6.2-9.4 6.2-16.9z"/><path fill="#FBBC05" d="M10.5 28.3c-.5-1.4-.8-2.9-.8-4.3s.3-3 .8-4.3l-7.9-6.1C.9 16.7 0 20.2 0 24s.9 7.3 2.6 10.4l7.9-6.1z"/><path fill="#34A853" d="M24 48c6.5 0 11.9-2.1 15.9-5.8l-7-5.4c-2 1.3-4.5 2.1-8.9 2.1-6.3 0-11.6-3.7-13.5-8.9l-7.9 6.1C6.5 42.6 14.6 48 24 48z"/></svg>`;
+
+/* ---------- auth ---------- */
+$("#signin-crest").innerHTML = crestHTML();
+$("#glogo").innerHTML = googleLogo;
+
+$("#googleBtn").addEventListener("click", async ()=>{
+  try{ await signInWithPopup(auth, provider); }
+  catch(e){
+    // popups are often blocked on mobile; fall back to redirect
+    try{ await signInWithRedirect(auth, provider); }
+    catch(err){ toast("Sign-in failed. Check your connection."); }
+  }
+});
+getRedirectResult(auth).catch(()=>{});
+$("#signoutBtn").addEventListener("click", ()=> signOut(auth));
+
+onAuthStateChanged(auth, (user)=>{
+  if(user){
+    uid = user.uid;
+    $("#signin").classList.add("hide");
+    $("#app").classList.remove("hide");
+    buildNav();
+    subscribe();
+    show(current);
+  } else {
+    uid = null;
+    unsub.forEach(fn=>fn()); unsub = [];
+    $("#app").classList.add("hide");
+    $("#signin").classList.remove("hide");
+  }
+});
+
+/* ---------- firestore subscriptions ---------- */
+function subscribe(){
+  unsub.forEach(fn=>fn()); unsub = [];
+  const profileRef = doc(db,"users",uid,"meta","profile");
+  const configRef  = doc(db,"users",uid,"meta","config");
+  const budgetCol  = collection(db,"users",uid,"budget");
+
+  unsub.push(onSnapshot(profileRef,(snap)=>{
+    state.profile = Object.assign({weddingDate:null,heroPhoto:null}, snap.exists()?snap.data():{});
+    maybeRender();
+  }));
+  unsub.push(onSnapshot(configRef,(snap)=>{
+    if(snap.exists() && snap.data().events){ state.config.events = snap.data().events; }
+    maybeRender();
+  }));
+  unsub.push(onSnapshot(query(budgetCol, orderBy("createdAt","asc")),(snap)=>{
+    state.budget = snap.docs.map(d=>Object.assign({id:d.id}, d.data()));
+    maybeRender();
+  }));
+}
+
+/* If the user is typing in the current view, defer the re-render until they blur. */
+function maybeRender(){
+  const root = $("#viewRoot");
+  const active = document.activeElement;
+  if(root && active && root.contains(active) && (active.tagName==="INPUT")){
+    pendingRender = true; updateLive(); return;
+  }
+  show(current);
+}
+document.addEventListener("focusout",()=>{ if(pendingRender){ pendingRender=false; setTimeout(()=>show(current),50); } });
+
+/* ---------- writes ---------- */
+const saveTimers = new Map();
+function debounceSave(key, fn, ms=500){
+  clearTimeout(saveTimers.get(key));
+  saveTimers.set(key, setTimeout(fn, ms));
+}
+function saveProfile(patch){ setDoc(doc(db,"users",uid,"meta","profile"), patch, {merge:true}); }
+function saveConfig(){ setDoc(doc(db,"users",uid,"meta","config"), {events:state.config.events}, {merge:true}); }
+function addCategory(ev){ addDoc(collection(db,"users",uid,"budget"),
+  {event:ev, category:"", estimated:"", actual:"", deposit:"", flexible:true, createdAt:serverTimestamp()}); }
+function updateCategory(id,patch){ updateDoc(doc(db,"users",uid,"budget",id), patch); }
+function removeCategory(id){ deleteDoc(doc(db,"users",uid,"budget",id)); }
+
+/* ---------- budget math ---------- */
+function lineCommitted(c){ return (c.actual!=="" && c.actual!=null) ? num(c.actual) : num(c.estimated); }
+function computeEvent(ev){
+  const cfg = state.config.events[ev] || {cap:0,buffer:0};
+  const rows = state.budget.filter(r=>r.event===ev);
+  let committed=0; rows.forEach(r=>committed+=lineCommitted(r));
+  const cap=num(cfg.cap), buffer=num(cfg.buffer), target=cap-buffer;
+  let zone = cap<=0?"empty" : committed>cap?"over" : committed>target?"buffer" : "calm";
+  return {ev,cap,buffer,target,committed,remaining:cap-committed,zone,rows};
+}
+function suggestFor(ev){
+  const e=computeEvent(ev);
+  if(e.cap<=0 || e.committed<=e.cap) return null;
+  const overage=e.committed-e.cap; const cands=[];
+  e.rows.forEach(r=>{
+    const flex=!!r.flexible; if(!flex) return;
+    const spent=(r.actual!=="" && r.actual!=null); if(spent) return;
+    const cuttable=Math.max(0,num(r.estimated)-num(r.deposit));
+    if(cuttable>0) cands.push({name:r.category||"a line", cuttable});
+  });
+  const total=cands.reduce((s,x)=>s+x.cuttable,0);
+  if(total<=0) return {text:"Over by "+money(overage)+" with nothing flexible left to trim. Raise the cap or unlock a line."};
+  const target=Math.min(overage,total);
+  const parts=cands.map(x=>({n:x.name,c:Math.round(target*(x.cuttable/total))})).filter(x=>x.c>0).map(x=>"trim "+x.n+" by "+money(x.c));
+  const shortfall=Math.max(0,overage-target);
+  let text="Over by "+money(overage)+". Try: "+parts.join(", ")+".";
+  if(shortfall>0) text+=" Still "+money(shortfall)+" to find after that.";
+  return {text};
+}
+function headcountFor(ev){ return 0; } // wired when Guests is built
+
+/* ---------- nav + view switching ---------- */
+function buildNav(){
+  const nav=$("#nav"); nav.innerHTML="";
+  VIEWS.forEach(v=>{
+    const b=document.createElement("button");
+    b.textContent=v; b.dataset.v=v;
+    if(v===current) b.classList.add("active");
+    b.addEventListener("click",()=>{ current=v; show(v); });
+    nav.appendChild(b);
+  });
+}
+function markNav(){ document.querySelectorAll("#nav button").forEach(b=>b.classList.toggle("active", b.dataset.v===current)); }
+
+function show(v){
+  current=v; markNav();
+  const root=$("#viewRoot");
+  root.className="";
+  if(v==="Home") root.innerHTML=renderHome();
+  else if(v==="Budget") root.innerHTML=renderBudget();
+  else root.innerHTML=renderSoon(v);
+  root.classList.add("view-enter");
+  wireCurrent(v);
+}
+
+/* ---------- HOME ---------- */
+function renderHome(){
+  const wd = state.profile.weddingDate;
+  let countdown;
+  if(wd){
+    const days=Math.ceil((new Date(wd).getTime()-Date.now())/86400000);
+    const dstr=new Date(wd).toLocaleDateString("en-US",{month:"long",day:"numeric",year:"numeric"});
+    const label = days>1?"days to go" : days===1?"one day to go" : days===0?"today" : "since we married";
+    countdown=`<div class="countdown"><div class="num tnum">${Math.abs(days)}</div><div class="lbl">${label}</div><div class="date">${esc(dstr)}</div></div>
+      <button class="setdate" data-act="setdate">Change the date</button>`;
+  } else {
+    countdown=`<div class="countdown"><div class="date" style="font-size:22px">Pick the date and the countdown begins.</div></div>
+      <button class="setdate" data-act="setdate">Set the date</button>`;
+  }
+  const photo = state.profile.heroPhoto
+    ? `<div class="hero-photo"><img src="${esc(state.profile.heroPhoto)}" alt="Ashley and Aaron"></div>`
+    : `<div class="photo-empty">Your favorite photo of the two of you goes here.<br><button data-act="setphoto">Add a photo link</button></div>`;
+
+  // pulse
+  let combinedRemaining=0; EVENTS.forEach(ev=>combinedRemaining+=computeEvent(ev).remaining);
+  const heads = headcountFor("Ashton")+headcountFor("Hoven");
+
+  const moods = EVENTS.map(ev=>{
+    const e=computeEvent(ev);
+    return `<div class="mood ${ev.toLowerCase()}">
+      <div class="evt">${esc(EVENT_LABEL[ev])}</div>
+      <div class="nm">${ev==="Ashton"?"Twilight":"Pasture"}</div>
+      <div class="place">${esc(EVENT_PLACE[ev])}</div>
+      <div class="rem">${e.cap>0?money(e.remaining)+" of "+money(e.cap)+" left":"Set a budget in Budget"}</div>
+    </div>`;
+  }).join("");
+
+  return `
+  <div class="hero">
+    <div class="crest">${crestHTML()}</div>
+    <div class="names">Ashley <span class="amp">&amp;</span> Aaron</div>
+    ${countdown}
+    ${photo}
+  </div>
+  <div class="view">
+    <div class="pulse">
+      <div class="pcard"><div class="k">Combined remaining</div><div class="v tnum">${money(combinedRemaining)}</div><div class="s">across both events</div></div>
+      <div class="pcard"><div class="k">Headcount</div><div class="v tnum">${heads}</div><div class="s">RSVP yes so far</div></div>
+      <div class="pcard"><div class="k">Next up</div><div class="v" style="font-size:22px;font-family:'Jost';font-weight:600">Set your date</div><div class="s">your guide wakes up once it's set</div></div>
+    </div>
+    <div class="moods">${moods}</div>
+  </div>`;
+}
+
+/* ---------- BUDGET ---------- */
+function renderBudget(){
+  let tCap=0,tCommit=0; EVENTS.forEach(ev=>{const e=computeEvent(ev); tCap+=e.cap; tCommit+=e.committed;});
+  const combined=`<div class="combined">
+    <div class="stat"><div class="lbl">Combined cap</div><div class="val tnum">${money(tCap)}</div></div>
+    <div class="stat"><div class="lbl">Committed</div><div class="val tnum">${money(tCommit)}</div></div>
+    <div class="stat hero"><div class="lbl">Combined remaining</div><div class="val tnum">${money(tCap-tCommit)}</div></div>
+  </div>`;
+
+  const cards = EVENTS.map(ev=>{
+    const e=computeEvent(ev); const cfg=state.config.events[ev];
+    const scale=e.committed>e.cap?e.committed:e.cap;
+    const planW=scale>0?Math.max(0,Math.min(100,e.target/scale*100)):0;
+    const bufW =scale>0?Math.max(0,Math.min(100-planW,e.buffer/scale*100)):0;
+    const fillW=scale>0?Math.max(0,Math.min(100,e.committed/scale*100)):0;
+    const zc={calm:"z-calm",buffer:"z-buffer",over:"z-over",empty:"z-empty"}[e.zone];
+    const zl={calm:"On track",buffer:"Into buffer",over:"Over cap",empty:"Set a cap"}[e.zone];
+
+    const rows=e.rows.map(c=>`
+      <div class="crow" data-id="${c.id}">
+        <div class="cn"><input type="text" data-f="category" value="${esc(c.category)}" placeholder="Category name"></div>
+        <input class="num" data-f="estimated" inputmode="decimal" value="${esc(c.estimated)}" placeholder="est">
+        <input class="num" data-f="actual" inputmode="decimal" value="${esc(c.actual)}" placeholder="actual">
+        <input class="num" data-f="deposit" inputmode="decimal" value="${esc(c.deposit)}" placeholder="dep">
+        <div class="tools">
+          <button class="flexbtn ${c.flexible?'flex':'lock'}" data-act="flex">${c.flexible?'Flexible':'Locked'}</button>
+          <button class="del" data-act="del" aria-label="Delete">&times;</button>
+        </div>
+      </div>`).join("");
+
+    const catBlock = e.rows.length
+      ? `<div class="chead"><div>Category</div><div class="rt">Est</div><div class="rt">Actual</div><div class="rt">Deposit</div><div></div></div>${rows}`
+      : `<div class="cat-empty">No categories yet. Name your first one below — venue, florals, the Cricut supplies.</div>`;
+
+    const sug=suggestFor(ev);
+    const nudge = sug ? `<div class="nudge"><div class="h">A gentle nudge</div><p>${esc(sug.text)}</p></div>` : "";
+
+    return `<div class="event" data-ev="${ev}">
+      <div class="en">${esc(EVENT_LABEL[ev])}</div>
+      <div class="es">${esc(EVENT_PLACE[ev])}</div>
+      <div class="caps">
+        <div class="capf"><label>Cap</label><div class="m"><input data-cf="cap" inputmode="decimal" value="${esc(cfg.cap||"")}" placeholder="0"></div></div>
+        <div class="capf"><label>Buffer</label><div class="m"><input data-cf="buffer" inputmode="decimal" value="${esc(cfg.buffer||"")}" placeholder="0"></div></div>
+        <div class="capf"><label>Per plate</label><div class="m"><input data-cf="perPlate" inputmode="decimal" value="${esc(cfg.perPlate||"")}" placeholder="0"></div></div>
+      </div>
+      <div class="meter-top">
+        <div class="remaining"><small>Remaining of cap</small><span class="rem-val">${money(e.remaining)}</span></div>
+        <div class="pill ${zc}">${zl}</div>
+      </div>
+      <div class="track">
+        <div class="zp" style="width:${planW}%"></div>
+        <div class="zb" style="left:${planW}%;width:${bufW}%"></div>
+        <div class="fl ${e.committed>e.cap?'over':''}" style="width:${fillW}%"></div>
+      </div>
+      <div class="cats">${catBlock}</div>
+      <button class="addcat" data-act="addcat">+ Add category</button>
+      ${nudge}
+    </div>`;
+  }).join("");
+
+  return `<div class="view">
+    <div class="vhead"><h2>Budget</h2><div class="sub">two events, two cushions — buffer lives inside the cap</div></div>
+    ${combined}
+    <div class="events">${cards}</div>
+  </div>`;
+}
+
+/* light in-place update while typing (no full re-render) */
+function updateLive(){
+  if(current!=="Budget") return;
+  EVENTS.forEach(ev=>{
+    const card=document.querySelector('.event[data-ev="'+ev+'"]'); if(!card) return;
+    const e=computeEvent(ev);
+    const scale=e.committed>e.cap?e.committed:e.cap;
+    const planW=scale>0?Math.max(0,Math.min(100,e.target/scale*100)):0;
+    const bufW =scale>0?Math.max(0,Math.min(100-planW,e.buffer/scale*100)):0;
+    const fillW=scale>0?Math.max(0,Math.min(100,e.committed/scale*100)):0;
+    const zp=card.querySelector(".zp"), zb=card.querySelector(".zb"), fl=card.querySelector(".fl");
+    if(zp) zp.style.width=planW+"%";
+    if(zb){ zb.style.left=planW+"%"; zb.style.width=bufW+"%"; }
+    if(fl){ fl.style.width=fillW+"%"; fl.classList.toggle("over", e.committed>e.cap); }
+    const rv=card.querySelector(".rem-val"); if(rv) rv.textContent=money(e.remaining);
+  });
+}
+
+/* ---------- placeholder views ---------- */
+function renderSoon(v){
+  const blurbs={
+    Guests:"Pretty household cards — who's invited to which event, RSVPs, and a headcount that quietly feeds your food budget. Building this next.",
+    Guide:"Your planning steps by phase, just the next few at a time. It wakes into a real countdown the moment your date is set.",
+    Details:"Every decision in one place — what's locked, what's still open — with the guest-safe ones flagged for the future site."
+  };
+  return `<div class="view">
+    <div class="vhead"><h2>${v}</h2><div class="sub">coming next</div></div>
+    <div class="soon"><div class="em">${v} is on the way</div><p>${blurbs[v]}</p></div>
+  </div>`;
+}
+
+/* ---------- wiring per view ---------- */
+function wireCurrent(v){
+  if(v==="Home") wireHome();
+  if(v==="Budget") wireBudget();
+}
+function wireHome(){
+  const root=$("#viewRoot");
+  root.querySelectorAll("[data-act='setdate']").forEach(b=>b.addEventListener("click",()=>{
+    const cur=state.profile.weddingDate||"";
+    const val=prompt("Wedding date as YYYY-MM-DD (leave blank to clear):", cur);
+    if(val===null) return;
+    const t=val.trim();
+    if(t==="") { saveProfile({weddingDate:null}); toast("Date cleared"); return; }
+    const d=new Date(t); if(isNaN(d.getTime())){ toast("Didn't read as a date. Try YYYY-MM-DD."); return; }
+    saveProfile({weddingDate:t}); toast("Date set");
+  }));
+  const sp=root.querySelector("[data-act='setphoto']");
+  if(sp) sp.addEventListener("click",()=>{
+    const val=prompt("Paste a link to your photo (a hosted image URL):", state.profile.heroPhoto||"");
+    if(val===null) return;
+    saveProfile({heroPhoto:val.trim()||null});
+  });
+}
+function wireBudget(){
+  const root=$("#viewRoot");
+  // config inputs
+  root.querySelectorAll("[data-cf]").forEach(inp=>{
+    inp.addEventListener("input",()=>{
+      const ev=inp.closest(".event").dataset.ev;
+      const f=inp.dataset.cf;
+      state.config.events[ev][f]=inp.value;
+      updateLive();
+      debounceSave("cfg",()=>saveConfig());
+    });
+  });
+  // category text/number inputs
+  root.querySelectorAll(".crow [data-f]").forEach(inp=>{
+    inp.addEventListener("input",()=>{
+      const id=inp.closest(".crow").dataset.id;
+      const f=inp.dataset.f;
+      const row=state.budget.find(r=>r.id===id); if(row) row[f]=inp.value;
+      updateLive();
+      debounceSave("cat:"+id+":"+f,()=>updateCategory(id,{[f]:inp.value}));
+    });
+  });
+  // buttons
+  root.querySelectorAll("[data-act='addcat']").forEach(b=>b.addEventListener("click",()=>{
+    addCategory(b.closest(".event").dataset.ev);
+  }));
+  root.querySelectorAll("[data-act='del']").forEach(b=>b.addEventListener("click",()=>{
+    removeCategory(b.closest(".crow").dataset.id);
+  }));
+  root.querySelectorAll("[data-act='flex']").forEach(b=>b.addEventListener("click",()=>{
+    const id=b.closest(".crow").dataset.id;
+    const row=state.budget.find(r=>r.id===id); if(row) updateCategory(id,{flexible:!row.flexible});
+  }));
+}
+</script>
+</body>
+</html>
