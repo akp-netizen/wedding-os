@@ -191,6 +191,44 @@
   .nudge .h{font-family:'Cormorant Garamond',serif; font-size:17px; color:#9C5E2C; margin-bottom:3px;}
   .nudge p{margin:0; font-size:13.5px; color:#6a5540;}
 
+  /* ---------- guests ---------- */
+  .hh-grid{display:grid; grid-template-columns:1fr 1fr; gap:16px;}
+  @media (max-width:760px){ .hh-grid{grid-template-columns:1fr;} }
+  .hh{background:var(--card); border:1px solid var(--line); border-radius:16px; padding:16px;
+    box-shadow:0 6px 22px -18px rgba(46,38,48,.5);}
+  .hh-top{display:flex; gap:12px; align-items:flex-start;}
+  .mono{flex:none; width:52px; height:52px; border-radius:50%;
+    background:linear-gradient(150deg,var(--wine),var(--plum)); color:var(--cream);
+    font-family:'Cormorant Garamond',serif; font-weight:600; font-size:19px; letter-spacing:.5px;
+    display:flex; align-items:center; justify-content:center;}
+  .hh-main{flex:1; min-width:0;}
+  .hh-name{width:100%; border:none; background:transparent; font-family:'Cormorant Garamond',serif;
+    font-weight:600; font-size:20px; color:var(--plum); padding:2px 0; border-bottom:1px solid transparent;}
+  .hh-name:hover{border-bottom-color:var(--line);} .hh-name:focus{outline:none; border-bottom-color:var(--wine);}
+  .hh-mem{width:100%; border:none; background:transparent; font-family:'Jost'; font-size:13px; color:var(--soft);
+    padding:3px 0; border-bottom:1px solid transparent;}
+  .hh-mem:hover{border-bottom-color:var(--line);} .hh-mem:focus{outline:none; border-bottom-color:var(--wine);}
+  .evt-blocks{display:flex; gap:10px; margin-top:14px; flex-wrap:wrap;}
+  .evt-block{flex:1; min-width:120px;}
+  .inv{width:100%; text-align:left; border:1px solid var(--line); background:#F6F1E6; color:var(--soft);
+    border-radius:8px; padding:7px 10px; font-size:12px; font-weight:600; letter-spacing:.02em;}
+  .inv.on{background:var(--sage-tint); color:var(--sage-deep); border-color:#cdd6bd;}
+  .rsvp-row{display:flex; gap:6px; margin-top:6px;}
+  .rsvpbtn{flex:1; border:1px solid var(--line); border-radius:8px; padding:6px 8px; font-size:12px;
+    font-weight:600; text-transform:capitalize; background:#F1EADB; color:var(--soft);}
+  .r-yes{background:var(--sage-tint); color:var(--sage-deep); border-color:#cdd6bd;}
+  .r-no{background:#EEE1DA; color:#8a4a3a; border-color:#e0cabf;}
+  .r-pending{background:#F1EADB; color:var(--soft);}
+  .cnt{flex:none; width:54px; text-align:center;}
+  .hh-more{margin-top:12px;}
+  .hh-more summary{cursor:pointer; font-size:12px; color:var(--wine); font-weight:600; letter-spacing:.02em;}
+  .hh-fields{display:flex; flex-direction:column; gap:8px; margin-top:10px;}
+  .hh-fields input{border:1px solid var(--line); background:var(--card-2); border-radius:8px; padding:7px 9px;
+    font-family:'Jost'; font-size:13.5px; color:var(--ink);}
+  .hh-fields input:focus{outline:none; border-color:var(--wine); background:#fff;}
+  .hh-token{margin-top:10px; font-size:11px; color:var(--soft);}
+  .hh-token code{background:#F1EADB; padding:1px 5px; border-radius:4px;}
+
   /* ---------- placeholder views ---------- */
   .soon{background:var(--card); border:1px solid var(--line); border-radius:16px; padding:36px; text-align:center;}
   .soon .em{font-family:'Cormorant Garamond',serif; font-size:26px; color:var(--plum); margin-bottom:8px;}
@@ -290,10 +328,16 @@ const googleLogo = `<svg viewBox="0 0 48 48" width="18" height="18"><path fill="
 $("#signin-crest").innerHTML = crestHTML();
 $("#glogo").innerHTML = googleLogo;
 
+const isMobile = /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent);
 $("#googleBtn").addEventListener("click", async ()=>{
+  if(isMobile){
+    // phones block popups; go straight to the reliable full-page redirect
+    try{ await signInWithRedirect(auth, provider); }
+    catch(err){ toast("Sign-in failed. Check your connection."); }
+    return;
+  }
   try{ await signInWithPopup(auth, provider); }
   catch(e){
-    // popups are often blocked on mobile; fall back to redirect
     try{ await signInWithRedirect(auth, provider); }
     catch(err){ toast("Sign-in failed. Check your connection."); }
   }
@@ -323,6 +367,7 @@ function subscribe(){
   const profileRef = doc(db,"users",uid,"meta","profile");
   const configRef  = doc(db,"users",uid,"meta","config");
   const budgetCol  = collection(db,"users",uid,"budget");
+  const guestsCol  = collection(db,"users",uid,"guests");
 
   unsub.push(onSnapshot(profileRef,(snap)=>{
     state.profile = Object.assign({weddingDate:null,heroPhoto:null}, snap.exists()?snap.data():{});
@@ -330,11 +375,15 @@ function subscribe(){
   }));
   unsub.push(onSnapshot(configRef,(snap)=>{
     if(snap.exists() && snap.data().events){ state.config.events = snap.data().events; }
-    maybeRender();
+    scheduleFoodSync(); maybeRender();
   }));
   unsub.push(onSnapshot(query(budgetCol, orderBy("createdAt","asc")),(snap)=>{
     state.budget = snap.docs.map(d=>Object.assign({id:d.id}, d.data()));
     maybeRender();
+  }));
+  unsub.push(onSnapshot(query(guestsCol, orderBy("createdAt","asc")),(snap)=>{
+    state.guests = snap.docs.map(d=>Object.assign({id:d.id}, d.data()));
+    scheduleFoodSync(); maybeRender();
   }));
 }
 
@@ -343,7 +392,7 @@ function maybeRender(){
   const root = $("#viewRoot");
   const active = document.activeElement;
   if(root && active && root.contains(active) && (active.tagName==="INPUT")){
-    pendingRender = true; updateLive(); return;
+    pendingRender = true; updateLive(); updateGuestSummary(); return;
   }
   show(current);
 }
@@ -391,7 +440,72 @@ function suggestFor(ev){
   if(shortfall>0) text+=" Still "+money(shortfall)+" to find after that.";
   return {text};
 }
-function headcountFor(ev){ return 0; } // wired when Guests is built
+function headcountFor(ev){
+  const invitedKey = ev==="Ashton"?"invitedAshton":"invitedHoven";
+  const rsvpKey    = ev==="Ashton"?"rsvpAshton":"rsvpHoven";
+  const countKey   = ev==="Ashton"?"countAshton":"countHoven";
+  let total=0;
+  state.guests.forEach(g=>{
+    if(!g[invitedKey]) return;
+    if(String(g[rsvpKey]||"pending")!=="yes") return;
+    total+=num(g[countKey]);
+  });
+  return total;
+}
+
+/* headcount -> food line, the live tie-in */
+let foodSyncTimer=null;
+function scheduleFoodSync(){ clearTimeout(foodSyncTimer); foodSyncTimer=setTimeout(applyHeadcountToFood,600); }
+function applyHeadcountToFood(){
+  if(!uid) return;
+  EVENTS.forEach(ev=>{
+    const cfg=state.config.events[ev]; if(!cfg) return;
+    const perPlate=num(cfg.perPlate); if(perPlate<=0) return;
+    const heads=headcountFor(ev); if(heads<=0) return; // never zero-out a set line
+    const projected=Math.round(heads*perPlate);
+    const foodCat=(cfg.foodCategory||"Food").trim().toLowerCase();
+    const existing=state.budget.find(r=>r.event===ev && String(r.category).trim().toLowerCase()===foodCat);
+    if(existing){
+      if(num(existing.estimated)!==projected){ updateCategory(existing.id,{estimated:String(projected)}); }
+    } else {
+      addDoc(collection(db,"users",uid,"budget"),
+        {event:ev, category:cfg.foodCategory||"Food", estimated:String(projected), actual:"", deposit:"", flexible:true, createdAt:serverTimestamp()});
+    }
+  });
+}
+
+/* guest helpers */
+function monogramFrom(name){
+  const cleaned=String(name||"").replace(/\bthe\b/gi,"").replace(/\bfamily\b/gi,"").trim();
+  const fl=s=>s?s.charAt(0).toUpperCase():"";
+  const parts=cleaned.split(/\s*&\s*|\s+and\s+/i).map(s=>s.trim()).filter(Boolean);
+  if(parts.length>=2) return fl(parts[0])+"&"+fl(parts[1]);
+  const words=cleaned.split(/\s+/).filter(Boolean);
+  return words.length?fl(words[words.length-1]):"";
+}
+function genToken(taken){
+  const chars="abcdefghijkmnpqrstuvwxyz23456789";
+  for(let a=0;a<50;a++){ let t=""; for(let i=0;i<7;i++) t+=chars.charAt(Math.floor(Math.random()*chars.length)); if(!taken[t]) return t; }
+  return "t"+Date.now().toString(36);
+}
+function addHousehold(){
+  const taken={}; state.guests.forEach(g=>{ if(g.token) taken[g.token]=true; });
+  addDoc(collection(db,"users",uid,"guests"),{
+    displayName:"", monogram:"", members:"",
+    invitedAshton:true, invitedHoven:true,
+    rsvpAshton:"pending", rsvpHoven:"pending",
+    countAshton:"", countHoven:"",
+    email:"", phone:"", notes:"",
+    token:genToken(taken), createdAt:serverTimestamp()
+  });
+}
+function updateHousehold(id,patch){ updateDoc(doc(db,"users",uid,"guests",id), patch); }
+function removeHousehold(id){ deleteDoc(doc(db,"users",uid,"guests",id)); }
+function updateGuestSummary(){
+  if(current!=="Guests") return;
+  const vals=$("#viewRoot").querySelectorAll(".combined .val");
+  if(vals.length>=3){ vals[0].textContent=state.guests.length; vals[1].textContent=headcountFor("Ashton"); vals[2].textContent=headcountFor("Hoven"); }
+}
 
 /* ---------- nav + view switching ---------- */
 function buildNav(){
@@ -412,6 +526,7 @@ function show(v){
   root.className="";
   if(v==="Home") root.innerHTML=renderHome();
   else if(v==="Budget") root.innerHTML=renderBudget();
+  else if(v==="Guests") root.innerHTML=renderGuests();
   else root.innerHTML=renderSoon(v);
   root.classList.add("view-enter");
   wireCurrent(v);
@@ -552,9 +667,105 @@ function updateLive(){
 }
 
 /* ---------- placeholder views ---------- */
+/* ---------- GUESTS ---------- */
+function renderGuests(){
+  const summary=`<div class="combined">
+    <div class="stat"><div class="lbl">Households</div><div class="val tnum">${state.guests.length}</div></div>
+    <div class="stat"><div class="lbl">Ashton headcount</div><div class="val tnum">${headcountFor("Ashton")}</div></div>
+    <div class="stat"><div class="lbl">Hoven headcount</div><div class="val tnum">${headcountFor("Hoven")}</div></div>
+  </div>`;
+  const cards = state.guests.length
+    ? `<div class="hh-grid">${state.guests.map(renderHousehold).join("")}</div>`
+    : `<div class="soon"><div class="em">No households yet</div><p>Add your first one. A household is a single invite for the whole crew, kids included — Austin &amp; Kell plus 2 kids is one card, not four.</p></div>`;
+  return `<div class="view">
+    <div class="vhead"><h2>Guests</h2><div class="sub">one card per household · a "yes" quietly feeds your food budget</div></div>
+    ${summary}
+    <button class="addcat" data-act="addhh" style="max-width:260px;margin-bottom:18px">+ Add household</button>
+    ${cards}
+  </div>`;
+}
+function renderHousehold(g){
+  const mono=esc(g.monogram || monogramFrom(g.displayName) || "?");
+  const block=(ev)=>{
+    const invited = ev==="Ashton"?!!g.invitedAshton:!!g.invitedHoven;
+    const rsvp = (ev==="Ashton"?g.rsvpAshton:g.rsvpHoven)||"pending";
+    const count = (ev==="Ashton"?g.countAshton:g.countHoven)||"";
+    let detail="";
+    if(invited){
+      const rc={pending:"r-pending",yes:"r-yes",no:"r-no"}[rsvp]||"r-pending";
+      detail=`<div class="rsvp-row">
+        <button class="rsvpbtn ${rc}" data-act="rsvp" data-ev="${ev}">${esc(rsvp)}</button>
+        <input class="num cnt" data-f="count" data-ev="${ev}" inputmode="numeric" value="${esc(count)}" placeholder="#" aria-label="Attending count">
+      </div>`;
+    }
+    return `<div class="evt-block">
+      <button class="inv ${invited?'on':''}" data-act="invite" data-ev="${ev}">${esc(EVENT_LABEL[ev])}</button>
+      ${detail}
+    </div>`;
+  };
+  return `<div class="hh" data-id="${g.id}">
+    <div class="hh-top">
+      <div class="mono">${mono}</div>
+      <div class="hh-main">
+        <input type="text" class="hh-name" data-f="displayName" value="${esc(g.displayName)}" placeholder="Household name (e.g. Austin & Kell)">
+        <input type="text" class="hh-mem" data-f="members" value="${esc(g.members)}" placeholder="Members (e.g. Austin, Kell, 2 kids)">
+      </div>
+      <button class="del" data-act="delhh" aria-label="Delete household">&times;</button>
+    </div>
+    <div class="evt-blocks">${block("Ashton")}${block("Hoven")}</div>
+    <details class="hh-more">
+      <summary>Contact &amp; notes</summary>
+      <div class="hh-fields">
+        <input type="text" data-f="email" value="${esc(g.email)}" placeholder="Email">
+        <input type="text" data-f="phone" value="${esc(g.phone)}" placeholder="Phone">
+        <input type="text" data-f="notes" value="${esc(g.notes)}" placeholder="Notes">
+      </div>
+      <div class="hh-token">invite code <code>${esc(g.token||"—")}</code> · monogram <code>${mono}</code></div>
+    </details>
+  </div>`;
+}
+function wireGuests(){
+  const root=$("#viewRoot");
+  root.querySelectorAll("[data-act='addhh']").forEach(b=>b.addEventListener("click",addHousehold));
+  root.querySelectorAll(".hh").forEach(card=>{
+    const id=card.dataset.id;
+    card.querySelectorAll("input[data-f]").forEach(inp=>{
+      inp.addEventListener("input",()=>{
+        const f=inp.dataset.f;
+        if(inp.dataset.ev && f==="count"){
+          const ev=inp.dataset.ev; const key=ev==="Ashton"?"countAshton":"countHoven";
+          const g=state.guests.find(x=>x.id===id); if(g) g[key]=inp.value;
+          updateGuestSummary(); scheduleFoodSync();
+          debounceSave("hh:"+id+":"+key,()=>updateHousehold(id,{[key]:inp.value}));
+          return;
+        }
+        const g=state.guests.find(x=>x.id===id); if(g) g[f]=inp.value;
+        let patch={}; patch[f]=inp.value;
+        if(f==="displayName" && g && !String(g.monogram).trim()){
+          const m=monogramFrom(inp.value); patch.monogram=m;
+          const badge=card.querySelector(".mono"); if(badge) badge.textContent=(m||"?");
+        }
+        debounceSave("hh:"+id+":"+f,()=>updateHousehold(id,patch));
+      });
+    });
+    card.querySelectorAll("[data-act='invite']").forEach(b=>b.addEventListener("click",()=>{
+      const ev=b.dataset.ev; const key=ev==="Ashton"?"invitedAshton":"invitedHoven";
+      const g=state.guests.find(x=>x.id===id); if(g) updateHousehold(id,{[key]:!g[key]});
+    }));
+    card.querySelectorAll("[data-act='rsvp']").forEach(b=>b.addEventListener("click",()=>{
+      const ev=b.dataset.ev; const key=ev==="Ashton"?"rsvpAshton":"rsvpHoven";
+      const g=state.guests.find(x=>x.id===id); if(!g) return;
+      const nextv={pending:"yes",yes:"no",no:"pending"}[(ev==="Ashton"?g.rsvpAshton:g.rsvpHoven)||"pending"];
+      updateHousehold(id,{[key]:nextv});
+    }));
+    card.querySelectorAll("[data-act='delhh']").forEach(b=>b.addEventListener("click",()=>{
+      if(confirm("Remove this household?")) removeHousehold(id);
+    }));
+  });
+}
+
 function renderSoon(v){
   const blurbs={
-    Guests:"Pretty household cards — who's invited to which event, RSVPs, and a headcount that quietly feeds your food budget. Building this next.",
     Guide:"Your planning steps by phase, just the next few at a time. It wakes into a real countdown the moment your date is set.",
     Details:"Every decision in one place — what's locked, what's still open — with the guest-safe ones flagged for the future site."
   };
@@ -568,6 +779,7 @@ function renderSoon(v){
 function wireCurrent(v){
   if(v==="Home") wireHome();
   if(v==="Budget") wireBudget();
+  if(v==="Guests") wireGuests();
 }
 function wireHome(){
   const root=$("#viewRoot");
