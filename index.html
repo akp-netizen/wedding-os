@@ -598,11 +598,13 @@ function memberCount(g){ return Array.isArray(g.members)?g.members.length:0; }
 function headcountFor(ev){
   const invitedKey = ev==="Ashton"?"invitedAshton":"invitedHoven";
   const rsvpKey    = ev==="Ashton"?"rsvpAshton":"rsvpHoven";
+  const countKey   = ev==="Ashton"?"countAshton":"countHoven";
   let total=0;
   state.guests.forEach(g=>{
     if(!g[invitedKey]) return;
     if(String(g[rsvpKey]||"pending")!=="yes") return;
-    total+=memberCount(g);
+    const c=num(g[countKey]);
+    total += c>0 ? c : memberCount(g);
   });
   return total;
 }
@@ -1268,7 +1270,10 @@ async function refreshRsvps(){
       ["Ashton","Hoven"].forEach(ev=>{
         const r=data[ev]; if(!r||!r.response) return;
         const rk=ev==="Ashton"?"rsvpAshton":"rsvpHoven";
+        const ck=ev==="Ashton"?"countAshton":"countHoven";
         patch[rk]= r.response==="yes"?"yes":"no";
+        if(r.response==="yes" && r.count!=null) patch[ck]=num(r.count);
+        if(r.response==="no") patch[ck]=0;
       });
       if(Object.keys(patch).length){ updateHousehold(g.id, patch); pulled++; }
     }catch(e){}
