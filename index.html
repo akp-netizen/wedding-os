@@ -241,6 +241,40 @@
   .hh-token{margin-top:14px; font-size:11px; color:var(--soft);}
   .hh-token code{background:#F1EADB; padding:1px 5px; border-radius:4px;}
 
+  /* ---------- guide ---------- */
+  .guide-head{background:var(--card); border:1px solid var(--line); border-radius:14px; padding:16px 18px; margin-bottom:22px;}
+  .gh-top{display:flex; justify-content:space-between; align-items:baseline; gap:12px; margin-bottom:10px; flex-wrap:wrap;}
+  .gh-count{font-family:'Cormorant Garamond',serif; font-weight:600; font-size:24px; color:var(--wine);}
+  .focus{font-size:13px; color:var(--soft); letter-spacing:.02em;}
+  .pbar{height:8px; background:#EDE6D6; border-radius:999px; overflow:hidden;}
+  .pfill{height:100%; background:linear-gradient(90deg,var(--sage),var(--sage-deep)); border-radius:999px; transition:width .4s ease;}
+  @media (prefers-reduced-motion: reduce){ .pfill{transition:none;} }
+  .phase{margin-bottom:26px;}
+  .phase-head{display:flex; align-items:baseline; gap:10px; margin-bottom:10px;}
+  .phase-head h3{font-family:'Cormorant Garamond',serif; font-weight:600; font-size:23px; color:var(--plum); margin:0;}
+  .phase-prog{font-size:12px; color:var(--soft); letter-spacing:.04em;}
+  .tasks{display:flex; flex-direction:column; gap:8px;}
+  .task{display:flex; gap:12px; align-items:flex-start; background:var(--card); border:1px solid var(--line); border-radius:12px; padding:12px 14px;}
+  .task.done{opacity:.6;}
+  .check{flex:none; width:22px; height:22px; border-radius:50%; border:2px solid var(--sage-deep); background:transparent; margin-top:2px; position:relative; cursor:pointer;}
+  .check.on{background:var(--sage-deep);}
+  .check.on::after{content:"✓"; color:#fff; font-size:13px; line-height:1; position:absolute; left:50%; top:50%; transform:translate(-50%,-55%);}
+  .t-main{flex:1; min-width:0;}
+  .t-title{width:100%; border:none; background:transparent; font-family:'Jost'; font-size:15px; color:var(--ink); padding:2px 0; border-bottom:1px solid transparent;}
+  .t-title:hover{border-bottom-color:var(--line);} .t-title:focus{outline:none; border-bottom-color:var(--wine);}
+  .task.done .t-title{text-decoration:line-through; color:var(--soft);}
+  .t-meta{display:flex; gap:6px; flex-wrap:wrap; margin-top:6px; align-items:center;}
+  .tag{font-size:10px; font-weight:600; letter-spacing:.04em; text-transform:uppercase; padding:2px 8px; border-radius:999px; background:#F1EADB; color:var(--soft);}
+  .tag.cat{background:#EFE7DC; color:var(--plum);}
+  .ev-Ashton{background:#F0DCE2; color:var(--wine);}
+  .ev-Hoven{background:var(--amber-tint); color:#8a5a1c;}
+  .ev-both{background:var(--sage-tint); color:var(--sage-deep);}
+  .due{font-size:10px; font-weight:600; letter-spacing:.04em; text-transform:uppercase; padding:2px 8px; border-radius:999px; background:var(--sage-tint); color:var(--sage-deep);}
+  .due.over{background:var(--over-tint); color:var(--wine);}
+  .t-advice{font-size:12.5px; color:var(--soft); margin-top:6px; line-height:1.45;}
+  .gbtn2{background:var(--wine); color:#fff; border:none; border-radius:999px; padding:11px 22px; font-weight:600; font-size:14px;}
+  .gbtn2:hover{background:var(--wine-deep);}
+
   /* ---------- placeholder views ---------- */
   .soon{background:var(--card); border:1px solid var(--line); border-radius:16px; padding:36px; text-align:center;}
   .soon .em{font-family:'Cormorant Garamond',serif; font-size:26px; color:var(--plum); margin-bottom:8px;}
@@ -281,7 +315,7 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-app.js";
 import { getAuth, GoogleAuthProvider, signInWithPopup, signInWithRedirect, getRedirectResult, onAuthStateChanged, signOut }
   from "https://www.gstatic.com/firebasejs/12.15.0/firebase-auth.js";
-import { getFirestore, doc, setDoc, onSnapshot, collection, addDoc, updateDoc, deleteDoc, query, orderBy, serverTimestamp }
+import { getFirestore, doc, setDoc, onSnapshot, collection, addDoc, updateDoc, deleteDoc, query, orderBy, serverTimestamp, writeBatch }
   from "https://www.gstatic.com/firebasejs/12.15.0/firebase-firestore.js";
 
 /* ---- your Firebase project ---- */
@@ -306,6 +340,61 @@ const EVENTS = ["Ashton","Hoven"];
 const EVENT_LABEL = { Ashton:"Twilight Ceremony", Hoven:"Pasture Party" };
 const EVENT_PLACE = { Ashton:"Ashton, Iowa", Hoven:"Hoven, South Dakota" };
 const VIEWS = ["Home","Budget","Guests","Guide","Details"];
+const PHASES = ["Foundations","Big Bookings","The Details","Final Countdown","Week Of"];
+
+/* Comprehensive starter plan tailored to a two-event, DIY, under-budget wedding.
+   [phase, category, title, countdown, event, advice, dyn] */
+function taskLibrary(){ return [
+  ["Foundations","Planning","Lock both event dates — Ashton ceremony and the Hoven party about a month later","-14mo","Both","Everything keys off these. Even target months wake your countdown.",""],
+  ["Foundations","Budget","Set the total budget and split it between the two events","-14mo","Both","You've got the Budget tab. Under $5k across both — keep each buffer honest.","budget"],
+  ["Foundations","Guests","Draft the guest list by household","-14mo","Both","Use the Guests tab. Households drive food, rentals, and paper counts.","headcount"],
+  ["Foundations","Style","Lock the aesthetic and vibe words","-13mo","Both","Backyard Bougie Boho: candlelit, burgundy, plum, rust, eucalyptus, antlers, feathers.",""],
+  ["Foundations","Venue","Confirm the Ashton backyard can host the ceremony and dinner","-13mo","Ashton","Capacity around 50, power, restrooms, parking, and an honest rain plan. It's home, so walk it.",""],
+  ["Foundations","Venue","Confirm the Hoven pasture setup for the party","-13mo","Hoven","Open-house style. Power, water, restrooms, parking on the land, and a weather cover plan.",""],
+
+  ["Big Bookings","Ceremony","Book the officiant","-11mo","Ashton","Personal and small. Ask if they'll help you shape the vows and the order of the ceremony.",""],
+  ["Big Bookings","Food & Drink","Decide the Ashton dinner food plan","-10mo","Ashton","Prime rib dinner. Caterer vs self-catered. Headcount times per-plate drives your food line.","headcount"],
+  ["Big Bookings","Food & Drink","Decide the Hoven party food plan","-10mo","Hoven","Open-house BBQ style. Grazing vs served. This feeds your Hoven food line.","headcount"],
+  ["Big Bookings","Rentals","Reserve tables and chairs for the Ashton U-shape","-9mo","Ashton","The U seats about 52 on the outside. Reserve early for your date.","headcount"],
+  ["Big Bookings","Rentals","Reserve Hoven rentals — tent, tables, lighting","-9mo","Hoven","Tent depends on budget and weather. Book the big items early.","headcount"],
+  ["Big Bookings","Food & Drink","Sort the drinks plan — beer, THC seltzers, soda, self-serve tubs","-8mo","Both","Self-serve tubs. Estimate per head now, buy closer in.",""],
+  ["Big Bookings","Photo & Music","Book or assign photography for both events","-7mo","Both","A pro for the ceremony, or a trusted friend plus a shot list. Cover Ashton and Hoven.",""],
+  ["Big Bookings","Photo & Music","Plan music and sound for both events","-7mo","Both","Processional and dinner ambiance at Ashton; a playlist and a good speaker at Hoven.",""],
+  ["Big Bookings","Attire","Order your attire","-6mo","Both","Order early for alterations. Two moods: dusk-formal at Ashton, relaxed at the pasture.",""],
+
+  ["The Details","Decor & DIY","Plan florals and foliage for each event","-5mo","Both","Burgundy and plum blooms, eucalyptus, feathers, antlers. DIY vs florist per event.",""],
+  ["The Details","Decor & DIY","Build the DIY and Cricut master list","-5mo","Both","Signage, favors, monograms, table numbers, seating chart. Start early — it adds up.",""],
+  ["The Details","Decor & DIY","Design and build the Hoven lawn games","-5mo","Hoven","Your DIY mini golf course and cornhole boards. Give yourself real build time.",""],
+  ["The Details","Ceremony","Finalize the Ashton ceremony layout","-4mo","Ashton","Altar under the maple, aisle through the U, fire-pit lounge after dinner.",""],
+  ["The Details","Food & Drink","Lock the dinner menu and place settings","-4mo","Ashton","Set the per-plate number so the food budget settles. Plates, linens, flatware.","headcount"],
+  ["The Details","Attire","Attire for Henry and Freddie","-4mo","Both","Two events, two looks. Keep the pasture one comfortable.",""],
+  ["The Details","Paper & Guests","Order invitations and design the bespoke QR codes","-3mo","Both","One per household from your guest list. Ashton and Hoven each get their own view.",""],
+  ["The Details","Attire","Plan hair and makeup","-3mo","Ashton","A trial run is worth it. Book if you're using a pro.",""],
+  ["The Details","Ceremony","Write your vows","-3mo","Both","Your notes to Aaron can live here when you're ready.",""],
+  ["The Details","Logistics","Plan the timeline for both days","-3mo","Both","Ceremony order at Ashton; open-house flow at Hoven.",""],
+  ["The Details","Decor & DIY","Buy candles, lanterns, and string lights","-3mo","Both","Candlelight is the whole mood at Ashton. Buy extra.",""],
+  ["The Details","Logistics","Arrange lodging and travel notes for out-of-town guests","-2mo","Both","Especially for anyone doing both Ashton and Hoven on one trip.",""],
+  ["The Details","Decor & DIY","Plan favors and thank-you gifts","-2mo","Both","Cricut favors tie the whole aesthetic together.",""],
+
+  ["Final Countdown","Paper & Guests","Send invitations and QR codes","-8wk","Both","Mail to the addresses in your Guests tab. Track RSVPs as they land.",""],
+  ["Final Countdown","Paper & Guests","Collect RSVPs and chase stragglers","-6wk","Both","Live counts update your food line on their own.","headcount"],
+  ["Final Countdown","Food & Drink","Buy drinks and non-perishables","-5wk","Both","Beer, THC seltzers, soda. Buy to your headcount.",""],
+  ["Final Countdown","Paper & Guests","Confirm the final headcount","-3wk","Both","The number caterer and rentals need. It reads your live RSVPs.","headcount"],
+  ["Final Countdown","Logistics","Confirm all vendors and settle balances","-3wk","Both","Check deposits vs balances due in the Budget tab.","budget"],
+  ["Final Countdown","Ceremony","Finalize the Ashton seating chart","-3wk","Ashton","Assign households to tables in the U. Use your guest list.",""],
+  ["Final Countdown","Attire","Final fitting, trial hair and makeup","-2wk","Ashton","Last alterations. Confirm your looks for both events.",""],
+  ["Final Countdown","Decor & DIY","Print signage, menus, and programs","-2wk","Both","Batch all your Cricut prints now.",""],
+  ["Final Countdown","Food & Drink","Plan the grocery and perishables run","-1wk","Both","Order the prime rib ahead. Map out sides and produce.",""],
+  ["Final Countdown","Logistics","Confirm setup and cleanup crew","-1wk","Both","Who sets the U, who tears down, who hauls to Hoven.",""],
+
+  ["Week Of","Day-Of","Assemble and label decor kits per event","-6d","Both","Two labeled totes — Ashton and Hoven — so nothing gets left behind.",""],
+  ["Week Of","Decor & DIY","Prep the DIY installs","-5d","Ashton","Do what you can ahead; keep florals fresh.",""],
+  ["Week Of","Day-Of","Pack the day-of emergency kit","-4d","Both","Sewing kit, meds, rings, documents, your vows, stain wipes.",""],
+  ["Week Of","Day-Of","Set up the Ashton backyard","-2d","Ashton","Tables, altar, lighting, fire pit. Test the lights at dusk.",""],
+  ["Week Of","Ceremony","Walk through the ceremony","-1d","Ashton","A quick run of the processional through the U.",""],
+  ["Week Of","Day-Of","Rest, hydrate, marry him","0d","Ashton","The system did its job. Be present.",""],
+  ["Week Of","Logistics","Reset and shift focus to the Hoven party","0d","Hoven","Recover, then turn toward the pasture celebration about a month out.",""]
+]; }
 
 let uid = null;
 let current = "Home";
@@ -315,7 +404,8 @@ const state = {
   profile: { weddingDate:null, heroPhoto:null },
   config: { events: { Ashton:{cap:0,buffer:0,perPlate:0,foodCategory:"Food"}, Hoven:{cap:0,buffer:0,perPlate:0,foodCategory:"Food"} } },
   budget: [],   // {id, event, category, estimated, actual, deposit, flexible}
-  guests: []    // later
+  guests: [],   // households
+  tasks: []     // guide steps
 };
 
 /* ---------- tiny helpers ---------- */
@@ -395,6 +485,11 @@ function subscribe(){
   unsub.push(onSnapshot(query(guestsCol, orderBy("createdAt","asc")),(snap)=>{
     state.guests = snap.docs.map(d=>Object.assign({id:d.id}, d.data()));
     scheduleFoodSync(); maybeRender();
+  }));
+  const tasksCol = collection(db,"users",uid,"tasks");
+  unsub.push(onSnapshot(query(tasksCol, orderBy("order","asc")),(snap)=>{
+    state.tasks = snap.docs.map(d=>Object.assign({id:d.id}, d.data()));
+    maybeRender();
   }));
 }
 
@@ -557,6 +652,7 @@ function show(v){
   if(v==="Home") root.innerHTML=renderHome();
   else if(v==="Budget") root.innerHTML=renderBudget();
   else if(v==="Guests") root.innerHTML=renderGuests();
+  else if(v==="Guide") root.innerHTML=renderGuide();
   else root.innerHTML=renderSoon(v);
   root.classList.add("view-enter");
   wireCurrent(v);
@@ -841,9 +937,124 @@ function wireGuests(){
   });
 }
 
+/* ---------- GUIDE ---------- */
+function taskDue(token){
+  const wd=state.profile.weddingDate; if(!wd) return null;
+  const m=String(token||"").match(/^-?(\d+)(yr|mo|wk|d)$/); if(!m) return null;
+  const n=parseInt(m[1],10), unit=m[2];
+  const d=new Date(wd);
+  if(unit==="yr") d.setFullYear(d.getFullYear()-n);
+  else if(unit==="mo") d.setMonth(d.getMonth()-n);
+  else if(unit==="wk") d.setDate(d.getDate()-n*7);
+  else d.setDate(d.getDate()-n);
+  return d;
+}
+function dueLabel(token){
+  const d=taskDue(token); if(!d) return "";
+  const days=Math.ceil((d.getTime()-Date.now())/86400000);
+  if(days<0) return "overdue";
+  if(days===0) return "now";
+  if(days<14) return "in "+days+" days";
+  if(days<60) return "in "+Math.round(days/7)+" weeks";
+  return "in "+Math.round(days/30)+" months";
+}
+function dynSuffix(t){
+  if(t.dyn==="headcount"){ const h=headcountFor("Ashton")+headcountFor("Hoven"); return " Right now: "+h+" heads across both."; }
+  if(t.dyn==="budget"){ let r=0; EVENTS.forEach(ev=>r+=computeEvent(ev).remaining); return " Right now: "+money(r)+" remaining."; }
+  return "";
+}
+function seedPlanner(){
+  const lib=taskLibrary();
+  const batch=writeBatch(db);
+  lib.forEach((t,i)=>{
+    const ref=doc(collection(db,"users",uid,"tasks"));
+    batch.set(ref,{title:t[2], phase:t[0], category:t[1], countdown:t[3], event:t[4], advice:t[5], dyn:t[6]||"", status:"todo", order:i, custom:false, createdAt:serverTimestamp()});
+  });
+  batch.commit().then(()=>toast("Your planner is ready")).catch(()=>toast("Couldn't load the plan. Try again."));
+}
+function addTask(phase){
+  const maxOrder=state.tasks.reduce((m,t)=>Math.max(m,num(t.order)),0);
+  addDoc(collection(db,"users",uid,"tasks"),{title:"", phase:phase||"Foundations", category:"", countdown:"", event:"", advice:"", dyn:"", status:"todo", order:maxOrder+1, custom:true, createdAt:serverTimestamp()});
+}
+function updateTask(id,patch){ updateDoc(doc(db,"users",uid,"tasks",id), patch); }
+function removeTask(id){ deleteDoc(doc(db,"users",uid,"tasks",id)); }
+
+function renderGuide(){
+  if(state.tasks.length===0){
+    return `<div class="view">
+      <div class="vhead"><h2>Guide</h2><div class="sub">your wedding planner, phase by phase</div></div>
+      <div class="soon"><div class="em">Let's build your plan</div>
+      <p>Load a full starter plan tailored to your two events, the DIY builds, and your budget — then edit anything, check things off, and add your own steps. Or start blank.</p>
+      <div style="margin-top:18px;display:flex;gap:10px;justify-content:center;flex-wrap:wrap">
+        <button class="gbtn2" data-act="seed">Load my starter plan</button>
+        <button class="addcat" style="max-width:200px;margin:0" data-act="addtask" data-phase="Foundations">Start blank</button>
+      </div></div>
+    </div>`;
+  }
+  const total=state.tasks.length, done=state.tasks.filter(t=>t.status==="done").length;
+  const pct=total?Math.round(done/total*100):0;
+  const wd=state.profile.weddingDate;
+  let focus="";
+  if(wd){ const days=Math.ceil((new Date(wd).getTime()-Date.now())/86400000);
+    focus=`<span class="focus">${days>=0?days+" days to go":"the big day has passed"}</span>`; }
+  else { focus=`<span class="focus">set your date on Home to wake the countdown</span>`; }
+  const header=`<div class="guide-head">
+    <div class="gh-top"><div class="gh-count tnum">${done} of ${total} done</div>${focus}</div>
+    <div class="pbar"><div class="pfill" style="width:${pct}%"></div></div>
+  </div>`;
+  const sections=PHASES.map(phase=>{
+    const tasks=state.tasks.filter(t=>t.phase===phase);
+    if(tasks.length===0) return "";
+    const pdone=tasks.filter(t=>t.status==="done").length;
+    return `<section class="phase">
+      <div class="phase-head"><h3>${esc(phase)}</h3><span class="phase-prog tnum">${pdone}/${tasks.length}</span></div>
+      <div class="tasks">${tasks.map(renderTaskRow).join("")}</div>
+      <button class="mini-add" data-act="addtask" data-phase="${esc(phase)}">+ Add a step to ${esc(phase)}</button>
+    </section>`;
+  }).join("");
+  return `<div class="view">
+    <div class="vhead"><h2>Guide</h2><div class="sub">your wedding planner, phase by phase</div></div>
+    ${header}${sections}
+  </div>`;
+}
+function renderTaskRow(t){
+  const done=t.status==="done";
+  const evTag = t.event==="Ashton"?`<span class="tag ev-Ashton">Ashton</span>`
+    : t.event==="Hoven"?`<span class="tag ev-Hoven">Hoven</span>`
+    : t.event==="Both"?`<span class="tag ev-both">Both</span>`:``;
+  const catTag = t.category?`<span class="tag cat">${esc(t.category)}</span>`:``;
+  const dl = (state.profile.weddingDate && t.countdown)?dueLabel(t.countdown):``;
+  const due = dl?`<span class="due ${dl==="overdue"?"over":""}">${esc(dl)}</span>`:``;
+  const advice = t.advice?`<div class="t-advice">${esc(t.advice)}${esc(dynSuffix(t))}</div>`:``;
+  return `<div class="task ${done?"done":""}" data-id="${t.id}">
+    <button class="check ${done?"on":""}" data-act="toggle" aria-label="Toggle done"></button>
+    <div class="t-main">
+      <input type="text" class="t-title" data-f="title" value="${esc(t.title)}" placeholder="Step">
+      <div class="t-meta">${due}${evTag}${catTag}</div>
+      ${advice}
+    </div>
+    <button class="del" data-act="deltask" aria-label="Delete step">&times;</button>
+  </div>`;
+}
+function wireGuide(){
+  const root=$("#viewRoot");
+  root.querySelectorAll("[data-act='seed']").forEach(b=>b.addEventListener("click",seedPlanner));
+  root.querySelectorAll("[data-act='addtask']").forEach(b=>b.addEventListener("click",()=>addTask(b.dataset.phase)));
+  root.querySelectorAll(".task").forEach(row=>{
+    const id=row.dataset.id;
+    row.querySelectorAll("[data-act='toggle']").forEach(b=>b.addEventListener("click",()=>{
+      const t=state.tasks.find(x=>x.id===id); if(t) updateTask(id,{status:t.status==="done"?"todo":"done"});
+    }));
+    row.querySelectorAll("input[data-f='title']").forEach(inp=>inp.addEventListener("input",()=>{
+      const t=state.tasks.find(x=>x.id===id); if(t) t.title=inp.value;
+      debounceSave("task:"+id,()=>updateTask(id,{title:inp.value}));
+    }));
+    row.querySelectorAll("[data-act='deltask']").forEach(b=>b.addEventListener("click",()=>removeTask(id)));
+  });
+}
+
 function renderSoon(v){
   const blurbs={
-    Guide:"Your planning steps by phase, just the next few at a time. It wakes into a real countdown the moment your date is set.",
     Details:"Every decision in one place — what's locked, what's still open — with the guest-safe ones flagged for the future site."
   };
   return `<div class="view">
@@ -857,6 +1068,7 @@ function wireCurrent(v){
   if(v==="Home") wireHome();
   if(v==="Budget") wireBudget();
   if(v==="Guests") wireGuests();
+  if(v==="Guide") wireGuide();
 }
 function wireHome(){
   const root=$("#viewRoot");
