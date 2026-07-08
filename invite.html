@@ -30,6 +30,7 @@
   .count .n{font-size:34px; font-weight:600; display:block;}
 
   .wrap{max-width:640px; margin:0 auto; padding:30px 20px 80px;}
+  .status{text-align:center; background:var(--sage-tint); color:var(--sage-deep); border-radius:12px; padding:12px 16px; margin-bottom:20px; font-size:14px; font-weight:500;}
   .evt{background:var(--card); border:1px solid var(--line); border-radius:16px; padding:22px; margin-bottom:20px; box-shadow:0 6px 22px -18px rgba(46,38,48,.5);}
   .evt h2{font-family:'Cormorant Garamond',serif; font-weight:600; font-size:28px; color:var(--wine); margin:0;}
   .evt .place{font-style:italic; font-family:'Cormorant Garamond',serif; color:var(--soft); margin:2px 0 14px;}
@@ -43,6 +44,12 @@
   .yn button{flex:1; border:1px solid var(--line); background:#F6F1E6; color:var(--soft); border-radius:10px; padding:12px; font-family:'Jost'; font-weight:600; font-size:14px; cursor:pointer;}
   .yn button.yes.on{background:var(--sage-tint); color:var(--sage-deep); border-color:#cdd6bd;}
   .yn button.no.on{background:#EEE1DA; color:#8a4a3a; border-color:#e0cabf;}
+  .howmany{margin-top:12px; display:none; align-items:center; gap:10px;}
+  .howmany.show{display:flex;}
+  .howmany label{font-size:14px; color:var(--soft);}
+  .stepper{display:flex; align-items:center; gap:0; border:1px solid var(--line); border-radius:10px; overflow:hidden;}
+  .stepper button{border:none; background:#F1EADB; color:var(--wine); width:38px; height:38px; font-size:18px; font-weight:600; cursor:pointer;}
+  .stepper .val{width:44px; text-align:center; font-weight:600; font-variant-numeric:tabular-nums;}
 
   .submit{width:100%; margin-top:22px; background:var(--wine); color:#fff; border:none; border-radius:999px; padding:15px; font-family:'Jost'; font-weight:600; font-size:16px; cursor:pointer;}
   .submit:hover{background:var(--wine-deep);}
@@ -80,7 +87,7 @@ function qs(k){ return new URLSearchParams(location.search).get(k); }
 
 const token = qs("t");
 const root = document.getElementById("root");
-const responses = {}; // eventKey -> "yes"/"no"
+const responses = {}; // eventKey -> {response, count}
 
 if(!token){
   root.innerHTML = `<div class="msg"><div class="big">Check your link</div>This invitation link is missing its code. Please use the link or QR from your invitation.</div>`;
@@ -95,13 +102,16 @@ async function load(){
       root.innerHTML = `<div class="msg"><div class="big">Hmm…</div>We couldn't find this invitation. Double-check your link, or reach out to Ashley &amp; Aaron.</div>`;
       return;
     }
-    render(snap.data());
+    // load any previous RSVP so it shows as an update, not a blank slate
+    let prior = {};
+    try{ const rs = await getDoc(doc(db,"rsvps",token)); if(rs.exists()) prior = rs.data(); }catch(e){}
+    render(snap.data(), prior);
   }catch(e){
     root.innerHTML = `<div class="msg"><div class="big">Something went sideways</div>Please try again in a moment.</div>`;
   }
 }
 
-function render(data){
+function render(data, prior){
   const events = Array.isArray(data.events)?data.events:[];
   const greet = data.household ? `Dear ${esc(data.household)},` : "";
   let countdown = "";
@@ -109,12 +119,19 @@ function render(data){
     const days = Math.ceil((new Date(data.weddingDate).getTime()-Date.now())/86400000);
     if(days>=0) countdown = `<div class="count"><span class="n">${days}</span>days to go</div>`;
   }
+  const hasPrior = prior && Object.keys(prior).some(k=>prior[k] && prior[k].response);
+  const statusBar = hasPrior ? `<div class="status">You've already RSVP'd — thank you! You can change your answer below anytime.</div>` : "";
 
   const eventCards = events.map(ev=>{
     const dets = Array.isArray(ev.details)?ev.details.filter(d=>d.item||d.value):[];
     const detRows = dets.length
       ? dets.map(d=>`<div class="det"><span class="k">${esc(d.item)}</span><span class="v">${esc(d.value)}</span></div>`).join("")
       : `<div class="no-det">Details coming soon.</div>`;
+    const p = prior[ev.key] || {};
+    const preYes = p.response==="yes", preNo = p.response==="no";
+    const preCount = (p.count!=null && p.count!=="") ? p.count : 1;
+    // seed responses with prior
+    if(p.response) responses[ev.key] = {response:p.response, count:preYes?Number(preCount):0};
     return `<div class="evt">
       <h2>${esc(ev.label)}</h2>
       <div class="place">${esc(ev.place||"")}</div>
@@ -122,8 +139,16 @@ function render(data){
       <div class="rsvp">
         <div class="q">Will your household join us?</div>
         <div class="yn" data-ev="${esc(ev.key)}">
-          <button class="yes" data-r="yes">Joyfully yes</button>
-          <button class="no" data-r="no">Sadly no</button>
+          <button class="yes ${preYes?'on':''}" data-r="yes">Joyfully yes</button>
+          <button class="no ${preNo?'on':''}" data-r="no">Sadly no</button>
+        </div>
+        <div class="howmany ${preYes?'show':''}" data-ev="${esc(ev.key)}">
+          <label>How many coming?</label>
+          <div class="stepper">
+            <button data-step="-1" aria-label="Fewer">−</button>
+            <span class="val" data-count>${esc(preCount)}</span>
+            <button data-step="1" aria-label="More">+</button>
+          </div>
         </div>
       </div>
     </div>`;
@@ -139,18 +164,39 @@ function render(data){
       ${countdown}
     </div>
     <div class="wrap">
+      ${statusBar}
       ${eventCards || `<div class="msg">Your invitation details are on their way.</div>`}
-      <button class="submit" id="submitBtn">Send our RSVP</button>
+      <button class="submit" id="submitBtn">${hasPrior?'Update our RSVP':'Send our RSVP'}</button>
       <div class="thanks" id="thanks">Thank you — your RSVP is in. We can't wait.</div>
     </div>`;
 
   document.querySelectorAll(".yn").forEach(group=>{
     const ev=group.dataset.ev;
+    const many=document.querySelector('.howmany[data-ev="'+CSS.escape(ev)+'"]');
     group.querySelectorAll("button").forEach(btn=>{
       btn.addEventListener("click",()=>{
-        responses[ev]=btn.dataset.r;
+        const r=btn.dataset.r;
         group.querySelectorAll("button").forEach(b=>b.classList.remove("on"));
         btn.classList.add("on");
+        if(r==="yes"){
+          many.classList.add("show");
+          const cur=parseInt(many.querySelector("[data-count]").textContent,10)||1;
+          responses[ev]={response:"yes", count:cur};
+        }else{
+          many.classList.remove("show");
+          responses[ev]={response:"no", count:0};
+        }
+      });
+    });
+  });
+  document.querySelectorAll(".howmany").forEach(hm=>{
+    const ev=hm.dataset.ev; const valEl=hm.querySelector("[data-count]");
+    hm.querySelectorAll("[data-step]").forEach(btn=>{
+      btn.addEventListener("click",()=>{
+        let v=parseInt(valEl.textContent,10)||1;
+        v=Math.max(1, v+parseInt(btn.dataset.step,10));
+        valEl.textContent=v;
+        responses[ev]={response:"yes", count:v};
       });
     });
   });
@@ -158,13 +204,13 @@ function render(data){
 }
 
 async function submit(){
-  const payload={ at:serverTimestamp() };
-  Object.keys(responses).forEach(ev=>{ payload[ev]={response:responses[ev]}; });
   if(Object.keys(responses).length===0){ alert("Please tap yes or no for your event first."); return; }
+  const payload={ at:serverTimestamp() };
+  Object.keys(responses).forEach(ev=>{ payload[ev]=responses[ev]; });
   try{
     await setDoc(doc(db,"rsvps",token), payload, {merge:true});
     document.getElementById("thanks").style.display="block";
-    document.getElementById("submitBtn").textContent="RSVP sent ✓";
+    document.getElementById("submitBtn").textContent="RSVP saved ✓";
   }catch(e){
     alert("Couldn't send your RSVP just now. Please try again.");
   }
