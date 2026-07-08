@@ -275,6 +275,31 @@
   .gbtn2{background:var(--wine); color:#fff; border:none; border-radius:999px; padding:11px 22px; font-weight:600; font-size:14px;}
   .gbtn2:hover{background:var(--wine-deep);}
 
+  /* ---------- details ---------- */
+  .dcards{display:grid; grid-template-columns:1fr 1fr; gap:16px;}
+  @media (max-width:860px){ .dcards{grid-template-columns:1fr;} }
+  .dcard{background:var(--card); border:1px solid var(--line); border-radius:14px; padding:16px;
+    box-shadow:0 6px 22px -18px rgba(46,38,48,.5); display:flex; flex-direction:column; gap:10px;}
+  .d-top{display:flex; gap:10px; align-items:center;}
+  .d-item{flex:1; min-width:0; border:none; background:transparent; font-family:'Cormorant Garamond',serif;
+    font-weight:600; font-size:20px; color:var(--plum); padding:2px 0; border-bottom:1px solid transparent;}
+  .d-item:hover{border-bottom-color:var(--line);} .d-item:focus{outline:none; border-bottom-color:var(--wine);}
+  .stpill{flex:none; border:1px solid var(--line); border-radius:999px; padding:5px 12px; font-size:11px;
+    font-weight:600; letter-spacing:.04em; text-transform:uppercase;}
+  .st-open{background:var(--amber-tint); color:#8a5a1c; border-color:#e6d3a8;}
+  .st-decided{background:var(--sage-tint); color:var(--sage-deep); border-color:#cdd6bd;}
+  .st-booked{background:var(--wine); color:#fff; border-color:var(--wine-deep);}
+  .d-meta{display:flex; gap:8px; align-items:center;}
+  .evcyc{flex:none; border:1px solid var(--line); border-radius:8px; padding:7px 12px; font-size:12px; font-weight:600;}
+  .evcyc.ev-both{background:var(--sage-tint); color:var(--sage-deep); border-color:#cdd6bd;}
+  .evcyc.ev-Ashton{background:#F0DCE2; color:var(--wine); border-color:#e6c3ce;}
+  .evcyc.ev-Hoven{background:var(--amber-tint); color:#8a5a1c; border-color:#e6d3a8;}
+  .d-cat{margin-bottom:0;}
+  .d-pub{margin-top:2px; padding-top:12px; border-top:1px solid #EFE9DC; display:flex; flex-direction:column; gap:8px;}
+  .pubtoggle{align-self:flex-start; border:1px solid var(--line); background:#F1EADB; color:var(--soft);
+    border-radius:999px; padding:6px 12px; font-size:12px; font-weight:600;}
+  .pubtoggle.on{background:var(--sage-tint); color:var(--sage-deep); border-color:#cdd6bd;}
+
   /* ---------- placeholder views ---------- */
   .soon{background:var(--card); border:1px solid var(--line); border-radius:16px; padding:36px; text-align:center;}
   .soon .em{font-family:'Cormorant Garamond',serif; font-size:26px; color:var(--plum); margin-bottom:8px;}
@@ -405,7 +430,8 @@ const state = {
   config: { events: { Ashton:{cap:0,buffer:0,perPlate:0,foodCategory:"Food"}, Hoven:{cap:0,buffer:0,perPlate:0,foodCategory:"Food"} } },
   budget: [],   // {id, event, category, estimated, actual, deposit, flexible}
   guests: [],   // households
-  tasks: []     // guide steps
+  tasks: [],    // guide steps
+  details: []   // decisions
 };
 
 /* ---------- tiny helpers ---------- */
@@ -489,6 +515,11 @@ function subscribe(){
   const tasksCol = collection(db,"users",uid,"tasks");
   unsub.push(onSnapshot(query(tasksCol, orderBy("order","asc")),(snap)=>{
     state.tasks = snap.docs.map(d=>Object.assign({id:d.id}, d.data()));
+    maybeRender();
+  }));
+  const detailsCol = collection(db,"users",uid,"details");
+  unsub.push(onSnapshot(query(detailsCol, orderBy("order","asc")),(snap)=>{
+    state.details = snap.docs.map(d=>Object.assign({id:d.id}, d.data()));
     maybeRender();
   }));
 }
@@ -653,6 +684,7 @@ function show(v){
   else if(v==="Budget") root.innerHTML=renderBudget();
   else if(v==="Guests") root.innerHTML=renderGuests();
   else if(v==="Guide") root.innerHTML=renderGuide();
+  else if(v==="Details") root.innerHTML=renderDetails();
   else root.innerHTML=renderSoon(v);
   root.classList.add("view-enter");
   wireCurrent(v);
@@ -1053,6 +1085,111 @@ function wireGuide(){
   });
 }
 
+/* ---------- DETAILS ---------- */
+const D_STATUS = ["Open","Decided","Booked"];
+const D_EVENT = ["Both","Ashton","Hoven"];
+function addDetail(){
+  const maxOrder=state.details.reduce((m,d)=>Math.max(m,num(d.order)),0);
+  addDoc(collection(db,"users",uid,"details"),{
+    item:"", event:"Both", category:"", status:"Open",
+    vendor:"", contact:"", cost:"", notes:"",
+    publish:false, published:"", order:maxOrder+1, createdAt:serverTimestamp()
+  });
+}
+function updateDetail(id,patch){ updateDoc(doc(db,"users",uid,"details",id), patch); }
+function removeDetail(id){ deleteDoc(doc(db,"users",uid,"details",id)); }
+
+function renderDetails(){
+  if(state.details.length===0){
+    return `<div class="view">
+      <div class="vhead"><h2>Details</h2><div class="sub">every decision in one place</div></div>
+      <div class="soon"><div class="em">Nothing tracked yet</div>
+      <p>This is where every decision lives — florist, cake, rentals, music, whatever's on your mind. Mark each one Open, Decided, or Booked, and flag the ones guests should see for your future site.</p>
+      <div style="margin-top:18px"><button class="gbtn2" data-act="adddetail">Add your first decision</button></div></div>
+    </div>`;
+  }
+  const counts={Open:0,Decided:0,Booked:0};
+  state.details.forEach(d=>{ const s=d.status||"Open"; if(counts[s]!=null) counts[s]++; });
+  const summary=`<div class="combined">
+    <div class="stat"><div class="lbl">Still open</div><div class="val tnum">${counts.Open}</div></div>
+    <div class="stat"><div class="lbl">Decided</div><div class="val tnum">${counts.Decided}</div></div>
+    <div class="stat hero"><div class="lbl">Booked</div><div class="val tnum">${counts.Booked}</div></div>
+  </div>`;
+  const groups=D_STATUS.map(status=>{
+    const items=state.details.filter(d=>(d.status||"Open")===status);
+    if(items.length===0) return "";
+    return `<section class="phase">
+      <div class="phase-head"><h3>${status}</h3><span class="phase-prog tnum">${items.length}</span></div>
+      <div class="dcards">${items.map(renderDetailCard).join("")}</div>
+    </section>`;
+  }).join("");
+  return `<div class="view">
+    <div class="vhead"><h2>Details</h2><div class="sub">every decision in one place</div></div>
+    ${summary}
+    <button class="addcat" data-act="adddetail" style="max-width:260px;margin-bottom:18px">+ Add a decision</button>
+    ${groups}
+  </div>`;
+}
+function renderDetailCard(d){
+  const st=d.status||"Open";
+  const stc={Open:"st-open",Decided:"st-decided",Booked:"st-booked"}[st]||"st-open";
+  const ev=d.event||"Both";
+  const evc={Both:"ev-both",Ashton:"ev-Ashton",Hoven:"ev-Hoven"}[ev]||"ev-both";
+  return `<div class="dcard" data-id="${d.id}">
+    <div class="d-top">
+      <input type="text" class="d-item" data-f="item" value="${esc(d.item)}" placeholder="What's the decision? (florist, cake, rentals...)">
+      <button class="stpill ${stc}" data-act="status">${esc(st)}</button>
+      <button class="del" data-act="deldetail" aria-label="Delete">&times;</button>
+    </div>
+    <div class="d-meta">
+      <button class="evcyc ${evc}" data-act="event">${esc(ev)}</button>
+      <input type="text" class="fld d-cat" data-f="category" value="${esc(d.category)}" placeholder="Category (florals, food, decor...)">
+    </div>
+    <div class="row2">
+      <input type="text" class="fld" data-f="vendor" value="${esc(d.vendor)}" placeholder="Vendor / who">
+      <input type="text" class="fld" data-f="contact" value="${esc(d.contact)}" placeholder="Contact">
+    </div>
+    <div class="row2">
+      <input type="text" class="fld" data-f="cost" value="${esc(d.cost)}" placeholder="Est. cost (note)">
+      <input type="text" class="fld" data-f="notes" value="${esc(d.notes)}" placeholder="Notes">
+    </div>
+    <div class="d-pub">
+      <button class="pubtoggle ${d.publish?'on':''}" data-act="publish">${d.publish?'Shown to guests ✓':'Show on guest site'}</button>
+      ${d.publish?`<input type="text" class="fld" data-f="published" value="${esc(d.published)}" placeholder="What guests see (time, address, etc.)">`:``}
+    </div>
+  </div>`;
+}
+function wireDetails(){
+  const root=$("#viewRoot");
+  root.querySelectorAll("[data-act='adddetail']").forEach(b=>b.addEventListener("click",addDetail));
+  root.querySelectorAll(".dcard").forEach(card=>{
+    const id=card.dataset.id;
+    const d=()=>state.details.find(x=>x.id===id);
+    card.querySelectorAll("input[data-f]").forEach(inp=>{
+      inp.addEventListener("input",()=>{
+        const f=inp.dataset.f; const dd=d(); if(dd) dd[f]=inp.value;
+        debounceSave("det:"+id+":"+f,()=>updateDetail(id,{[f]:inp.value}));
+      });
+    });
+    card.querySelectorAll("[data-act='status']").forEach(b=>b.addEventListener("click",()=>{
+      const dd=d(); if(!dd) return;
+      const i=D_STATUS.indexOf(dd.status||"Open");
+      updateDetail(id,{status:D_STATUS[(i+1)%D_STATUS.length]});
+    }));
+    card.querySelectorAll("[data-act='event']").forEach(b=>b.addEventListener("click",()=>{
+      const dd=d(); if(!dd) return;
+      const i=D_EVENT.indexOf(dd.event||"Both");
+      updateDetail(id,{event:D_EVENT[(i+1)%D_EVENT.length]});
+    }));
+    card.querySelectorAll("[data-act='publish']").forEach(b=>b.addEventListener("click",()=>{
+      const dd=d(); if(dd) updateDetail(id,{publish:!dd.publish});
+    }));
+    card.querySelectorAll("[data-act='deldetail']").forEach(b=>b.addEventListener("click",()=>{
+      if(confirm("Delete this decision?")) removeDetail(id);
+    }));
+  });
+}
+
 function renderSoon(v){
   const blurbs={
     Details:"Every decision in one place — what's locked, what's still open — with the guest-safe ones flagged for the future site."
@@ -1069,6 +1206,7 @@ function wireCurrent(v){
   if(v==="Budget") wireBudget();
   if(v==="Guests") wireGuests();
   if(v==="Guide") wireGuide();
+  if(v==="Details") wireDetails();
 }
 function wireHome(){
   const root=$("#viewRoot");
