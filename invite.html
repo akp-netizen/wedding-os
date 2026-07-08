@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>You're Invited — Ashley &amp; Aaron</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400&family=Jost:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --night:#211018; --glow:#3A1E2C; --cream:#EDE3D3; --brass:#C77D46;
+    --parchment:#F4EEE2; --card:#FBF8F1; --ink:#2E2630; --soft:#6B6069; --line:#E5DBC9;
+    --wine:#7B2233; --wine-deep:#5C1A2E; --plum:#4A2540;
+    --sage:#7C8B6B; --sage-deep:#5F6E50; --sage-tint:#E8ECDF;
+  }
+  *{box-sizing:border-box;} html,body{margin:0;padding:0;}
+  body{background:var(--parchment); color:var(--ink); font-family:'Jost',system-ui,sans-serif; font-size:16px; line-height:1.55;}
+  .hero{padding:56px 24px 44px; text-align:center; color:var(--cream);
+    background:radial-gradient(120% 100% at 50% -20%, var(--glow) 0%, transparent 60%), var(--night); position:relative; overflow:hidden;}
+  .flick{position:absolute; inset:0; pointer-events:none; background:radial-gradient(40% 30% at 50% 25%, rgba(199,125,70,.10), transparent 70%); animation:fl 6s ease-in-out infinite;}
+  @keyframes fl{0%,100%{opacity:.7}50%{opacity:1}}
+  @media (prefers-reduced-motion:reduce){ .flick{animation:none;} }
+  .crest{width:110px;height:110px;margin:0 auto 8px; position:relative; z-index:1;}
+  .names{font-family:'Cormorant Garamond',serif; font-weight:500; font-size:clamp(38px,9vw,60px); line-height:1.02; z-index:1; position:relative;}
+  .amp{font-style:italic; color:var(--brass);}
+  .invited{letter-spacing:.26em; text-transform:uppercase; font-size:12px; color:#C9B4B8; margin-top:14px; z-index:1; position:relative;}
+  .greet{font-family:'Cormorant Garamond',serif; font-style:italic; font-size:22px; color:var(--brass); margin-top:8px; z-index:1; position:relative;}
+  .count{font-family:'Cormorant Garamond',serif; font-size:20px; color:var(--cream); margin-top:18px; z-index:1; position:relative;}
+  .count .n{font-size:34px; font-weight:600; display:block;}
+
+  .wrap{max-width:640px; margin:0 auto; padding:30px 20px 80px;}
+  .evt{background:var(--card); border:1px solid var(--line); border-radius:16px; padding:22px; margin-bottom:20px; box-shadow:0 6px 22px -18px rgba(46,38,48,.5);}
+  .evt h2{font-family:'Cormorant Garamond',serif; font-weight:600; font-size:28px; color:var(--wine); margin:0;}
+  .evt .place{font-style:italic; font-family:'Cormorant Garamond',serif; color:var(--soft); margin:2px 0 14px;}
+  .det{display:flex; justify-content:space-between; gap:12px; padding:9px 0; border-top:1px solid #EFE9DC; font-size:14.5px;}
+  .det .k{color:var(--soft);} .det .v{font-weight:500; text-align:right;}
+  .no-det{color:var(--soft); font-size:14px; font-style:italic; padding-top:8px;}
+
+  .rsvp{margin-top:16px; padding-top:16px; border-top:1px solid #EFE9DC;}
+  .rsvp .q{font-size:14px; color:var(--ink); margin-bottom:10px; font-weight:500;}
+  .yn{display:flex; gap:10px;}
+  .yn button{flex:1; border:1px solid var(--line); background:#F6F1E6; color:var(--soft); border-radius:10px; padding:12px; font-family:'Jost'; font-weight:600; font-size:14px; cursor:pointer;}
+  .yn button.yes.on{background:var(--sage-tint); color:var(--sage-deep); border-color:#cdd6bd;}
+  .yn button.no.on{background:#EEE1DA; color:#8a4a3a; border-color:#e0cabf;}
+
+  .submit{width:100%; margin-top:22px; background:var(--wine); color:#fff; border:none; border-radius:999px; padding:15px; font-family:'Jost'; font-weight:600; font-size:16px; cursor:pointer;}
+  .submit:hover{background:var(--wine-deep);}
+  .msg{text-align:center; padding:60px 24px; color:var(--soft);}
+  .msg .big{font-family:'Cormorant Garamond',serif; font-size:30px; color:var(--wine); margin-bottom:10px;}
+  .thanks{text-align:center; background:var(--sage-tint); color:var(--sage-deep); border-radius:12px; padding:16px; margin-top:18px; font-weight:500; display:none;}
+  :focus-visible{outline:2px solid var(--wine); outline-offset:2px;}
+</style>
+</head>
+<body>
+<div id="root"><div class="msg"><div class="big">One moment…</div>Loading your invitation.</div></div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-app.js";
+import { getFirestore, doc, getDoc, setDoc, serverTimestamp }
+  from "https://www.gstatic.com/firebasejs/12.15.0/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyCAEZ5FVUzZrrbmmLq0RJzUjYvPPbWougY",
+  authDomain: "wedding-os-50658.firebaseapp.com",
+  projectId: "wedding-os-50658",
+  storageBucket: "wedding-os-50658.firebasestorage.app",
+  messagingSenderId: "182400692197",
+  appId: "1:182400692197:web:c6a68bd77e74f67e3f490c"
+};
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+
+const crestSVG = `<svg viewBox="0 0 120 120" width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
+  <circle cx="60" cy="60" r="52" fill="none" stroke="#C77D46" stroke-width="1.2" opacity="0.8"/>
+  <circle cx="60" cy="60" r="46" fill="none" stroke="#C77D46" stroke-width="0.6" opacity="0.5"/>
+  <text x="60" y="74" text-anchor="middle" font-family="Cormorant Garamond, serif" font-size="46" font-weight="600" fill="#EDE3D3">A<tspan font-style="italic" fill="#C77D46" font-size="30" dy="-2">&amp;</tspan>A</text></svg>`;
+function esc(s){ return String(s==null?"":s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;"); }
+function qs(k){ return new URLSearchParams(location.search).get(k); }
+
+const token = qs("t");
+const root = document.getElementById("root");
+const responses = {}; // eventKey -> "yes"/"no"
+
+if(!token){
+  root.innerHTML = `<div class="msg"><div class="big">Check your link</div>This invitation link is missing its code. Please use the link or QR from your invitation.</div>`;
+} else {
+  load();
+}
+
+async function load(){
+  try{
+    const snap = await getDoc(doc(db,"invites",token));
+    if(!snap.exists()){
+      root.innerHTML = `<div class="msg"><div class="big">Hmm…</div>We couldn't find this invitation. Double-check your link, or reach out to Ashley &amp; Aaron.</div>`;
+      return;
+    }
+    render(snap.data());
+  }catch(e){
+    root.innerHTML = `<div class="msg"><div class="big">Something went sideways</div>Please try again in a moment.</div>`;
+  }
+}
+
+function render(data){
+  const events = Array.isArray(data.events)?data.events:[];
+  const greet = data.household ? `Dear ${esc(data.household)},` : "";
+  let countdown = "";
+  if(data.weddingDate){
+    const days = Math.ceil((new Date(data.weddingDate).getTime()-Date.now())/86400000);
+    if(days>=0) countdown = `<div class="count"><span class="n">${days}</span>days to go</div>`;
+  }
+
+  const eventCards = events.map(ev=>{
+    const dets = Array.isArray(ev.details)?ev.details.filter(d=>d.item||d.value):[];
+    const detRows = dets.length
+      ? dets.map(d=>`<div class="det"><span class="k">${esc(d.item)}</span><span class="v">${esc(d.value)}</span></div>`).join("")
+      : `<div class="no-det">Details coming soon.</div>`;
+    return `<div class="evt">
+      <h2>${esc(ev.label)}</h2>
+      <div class="place">${esc(ev.place||"")}</div>
+      ${detRows}
+      <div class="rsvp">
+        <div class="q">Will your household join us?</div>
+        <div class="yn" data-ev="${esc(ev.key)}">
+          <button class="yes" data-r="yes">Joyfully yes</button>
+          <button class="no" data-r="no">Sadly no</button>
+        </div>
+      </div>
+    </div>`;
+  }).join("");
+
+  root.innerHTML = `
+    <div class="hero">
+      <div class="flick"></div>
+      <div class="crest">${crestSVG}</div>
+      <div class="names">Ashley <span class="amp">&amp;</span> Aaron</div>
+      <div class="invited">you're invited</div>
+      ${greet?`<div class="greet">${greet}</div>`:""}
+      ${countdown}
+    </div>
+    <div class="wrap">
+      ${eventCards || `<div class="msg">Your invitation details are on their way.</div>`}
+      <button class="submit" id="submitBtn">Send our RSVP</button>
+      <div class="thanks" id="thanks">Thank you — your RSVP is in. We can't wait.</div>
+    </div>`;
+
+  document.querySelectorAll(".yn").forEach(group=>{
+    const ev=group.dataset.ev;
+    group.querySelectorAll("button").forEach(btn=>{
+      btn.addEventListener("click",()=>{
+        responses[ev]=btn.dataset.r;
+        group.querySelectorAll("button").forEach(b=>b.classList.remove("on"));
+        btn.classList.add("on");
+      });
+    });
+  });
+  document.getElementById("submitBtn").addEventListener("click", submit);
+}
+
+async function submit(){
+  const payload={ at:serverTimestamp() };
+  Object.keys(responses).forEach(ev=>{ payload[ev]={response:responses[ev]}; });
+  if(Object.keys(responses).length===0){ alert("Please tap yes or no for your event first."); return; }
+  try{
+    await setDoc(doc(db,"rsvps",token), payload, {merge:true});
+    document.getElementById("thanks").style.display="block";
+    document.getElementById("submitBtn").textContent="RSVP sent ✓";
+  }catch(e){
+    alert("Couldn't send your RSVP just now. Please try again.");
+  }
+}
+</script>
+</body>
+</html>
