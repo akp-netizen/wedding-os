@@ -300,6 +300,22 @@
     border-radius:999px; padding:6px 12px; font-size:12px; font-weight:600;}
   .pubtoggle.on{background:var(--sage-tint); color:var(--sage-deep); border-color:#cdd6bd;}
 
+  /* ---------- invites ---------- */
+  .inv-actions{display:flex; gap:10px; flex-wrap:wrap; margin-bottom:10px;}
+  .inv-note{font-size:13px; color:var(--soft); margin:0 0 20px; line-height:1.5; max-width:640px;}
+  .inv-grid{display:grid; grid-template-columns:1fr 1fr; gap:16px;}
+  @media (max-width:760px){ .inv-grid{grid-template-columns:1fr;} }
+  .inv-card{display:flex; gap:16px; align-items:center; background:var(--card); border:1px solid var(--line);
+    border-radius:16px; padding:16px; box-shadow:0 6px 22px -18px rgba(46,38,48,.5);}
+  .qr{flex:none; width:120px; height:120px; display:flex; align-items:center; justify-content:center;}
+  .qr canvas,.qr img{width:120px !important; height:120px !important; border-radius:8px;}
+  .inv-main{flex:1; min-width:0;}
+  .inv-name{font-family:'Cormorant Garamond',serif; font-weight:600; font-size:20px; color:var(--plum);}
+  .inv-evs{font-size:12.5px; color:var(--soft); margin-top:3px;}
+  .inv-code{font-size:11px; color:var(--soft); margin-top:8px;}
+  .inv-code code{background:#F1EADB; padding:1px 5px; border-radius:4px;}
+  .inv-btns{display:flex; gap:8px; margin-top:10px; flex-wrap:wrap;}
+
   /* ---------- placeholder views ---------- */
   .soon{background:var(--card); border:1px solid var(--line); border-radius:16px; padding:36px; text-align:center;}
   .soon .em{font-family:'Cormorant Garamond',serif; font-size:26px; color:var(--plum); margin-bottom:8px;}
@@ -336,11 +352,12 @@
 
 <div class="toast" id="toast"></div>
 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-app.js";
 import { getAuth, GoogleAuthProvider, signInWithPopup, signInWithRedirect, getRedirectResult, onAuthStateChanged, signOut }
   from "https://www.gstatic.com/firebasejs/12.15.0/firebase-auth.js";
-import { getFirestore, doc, setDoc, onSnapshot, collection, addDoc, updateDoc, deleteDoc, query, orderBy, serverTimestamp, writeBatch }
+import { getFirestore, doc, getDoc, setDoc, onSnapshot, collection, addDoc, updateDoc, deleteDoc, query, orderBy, serverTimestamp, writeBatch }
   from "https://www.gstatic.com/firebasejs/12.15.0/firebase-firestore.js";
 
 /* ---- your Firebase project ---- */
@@ -364,7 +381,7 @@ const ASSET_BASE = "";
 const EVENTS = ["Ashton","Hoven"];
 const EVENT_LABEL = { Ashton:"Twilight Ceremony", Hoven:"Pasture Party" };
 const EVENT_PLACE = { Ashton:"Ashton, Iowa", Hoven:"Hoven, South Dakota" };
-const VIEWS = ["Home","Budget","Guests","Guide","Details"];
+const VIEWS = ["Home","Budget","Guests","Guide","Details","Invites"];
 const PHASES = ["Foundations","Big Bookings","The Details","Final Countdown","Week Of"];
 
 /* Comprehensive starter plan tailored to a two-event, DIY, under-budget wedding.
@@ -685,6 +702,7 @@ function show(v){
   else if(v==="Guests") root.innerHTML=renderGuests();
   else if(v==="Guide") root.innerHTML=renderGuide();
   else if(v==="Details") root.innerHTML=renderDetails();
+  else if(v==="Invites") root.innerHTML=renderInvites();
   else root.innerHTML=renderSoon(v);
   root.classList.add("view-enter");
   wireCurrent(v);
@@ -1190,6 +1208,127 @@ function wireDetails(){
   });
 }
 
+/* ---------- INVITES (public site + QR) ---------- */
+function inviteBase(){
+  const u=location.href.split('#')[0].split('?')[0];
+  const dir=u.substring(0,u.lastIndexOf('/')+1);
+  return dir+"invite.html";
+}
+function inviteLink(token){ return inviteBase()+"?t="+token; }
+function publishedDetailsFor(ev){
+  return state.details
+    .filter(d=>d.publish && (d.event===ev || d.event==="Both") && (String(d.item).trim()||String(d.published).trim()))
+    .map(d=>({item:String(d.item||""), value:String(d.published||"")}));
+}
+async function publishInvites(){
+  const withTokens=state.guests.filter(g=>g.token);
+  if(!withTokens.length){ toast("Add households first."); return; }
+  const batch=writeBatch(db);
+  withTokens.forEach(g=>{
+    const events=[];
+    EVENTS.forEach(ev=>{
+      const inv= ev==="Ashton"?g.invitedAshton:g.invitedHoven;
+      if(!inv) return;
+      events.push({key:ev, label:EVENT_LABEL[ev], place:EVENT_PLACE[ev], details:publishedDetailsFor(ev)});
+    });
+    batch.set(doc(db,"invites",g.token),{
+      ownerUid:uid,
+      household:g.displayName||"",
+      monogram:g.monogram||monogramFrom(g.displayName)||"",
+      weddingDate:state.profile.weddingDate||"",
+      events, updatedAt:serverTimestamp()
+    });
+  });
+  try{ await batch.commit(); toast("Guest site published"); }
+  catch(e){ toast("Publish failed — check your Firestore rules."); }
+}
+function drawQR(container, url, mono){
+  container.innerHTML="";
+  if(!window.QRCode){ container.textContent="QR unavailable"; return; }
+  new QRCode(container, {text:url, width:200, height:200, colorDark:"#2E2630", colorLight:"#F7F2E8", correctLevel:QRCode.CorrectLevel.H});
+  setTimeout(()=>{
+    const canvas=container.querySelector("canvas"); if(!canvas) return;
+    const img=container.querySelector("img"); if(img) img.style.display="none";
+    canvas.style.display="block";
+    const ctx=canvas.getContext("2d"); const s=canvas.width; const r=s*0.17;
+    ctx.beginPath(); ctx.arc(s/2,s/2,r+5,0,Math.PI*2); ctx.fillStyle="#F7F2E8"; ctx.fill();
+    ctx.beginPath(); ctx.arc(s/2,s/2,r,0,Math.PI*2); ctx.fillStyle="#7B2233"; ctx.fill();
+    ctx.fillStyle="#EDE3D3"; ctx.font="600 "+Math.round(r*1.05)+"px 'Cormorant Garamond', Georgia, serif";
+    ctx.textAlign="center"; ctx.textBaseline="middle"; ctx.fillText(mono||"A&A", s/2, s/2+1);
+  }, 80);
+}
+async function refreshRsvps(){
+  let pulled=0;
+  for(const g of state.guests){
+    if(!g.token) continue;
+    try{
+      const snap=await getDoc(doc(db,"rsvps",g.token));
+      if(!snap.exists()) continue;
+      const data=snap.data(); const patch={};
+      ["Ashton","Hoven"].forEach(ev=>{
+        const r=data[ev]; if(!r||!r.response) return;
+        const rk=ev==="Ashton"?"rsvpAshton":"rsvpHoven";
+        patch[rk]= r.response==="yes"?"yes":"no";
+      });
+      if(Object.keys(patch).length){ updateHousehold(g.id, patch); pulled++; }
+    }catch(e){}
+  }
+  toast(pulled?("Pulled "+pulled+" RSVP"+(pulled>1?"s":"")+" into your guest list"):"No new RSVPs yet");
+}
+function renderInvites(){
+  const withTokens=state.guests.filter(g=>g.token);
+  const top=`<div class="vhead"><h2>Invites</h2><div class="sub">publish the guest site, then share each household's code</div></div>`;
+  if(!withTokens.length){
+    return `<div class="view">${top}
+      <div class="soon"><div class="em">Add households first</div>
+      <p>Head to Guests and add the families you're inviting. Each one gets a private code and a bespoke QR here, ready to publish when you are.</p></div></div>`;
+  }
+  const actions=`<div class="inv-actions">
+    <button class="gbtn2" data-act="publish">Publish / update guest site</button>
+    <button class="addcat" style="max-width:200px;margin:0" data-act="refreshrsvp">Pull in RSVPs</button>
+  </div>
+  <p class="inv-note">Publishing writes each household a private page with only their invited events and the details you flagged "show on guest site." Re-publish whenever you change something.</p>`;
+  const cards=withTokens.map(g=>{
+    const mono=esc(g.monogram||monogramFrom(g.displayName)||"?");
+    const evs=[];
+    if(g.invitedAshton) evs.push(EVENT_LABEL.Ashton);
+    if(g.invitedHoven) evs.push(EVENT_LABEL.Hoven);
+    return `<div class="inv-card" data-token="${esc(g.token)}" data-mono="${mono}">
+      <div class="qr" id="qr-${esc(g.token)}"></div>
+      <div class="inv-main">
+        <div class="inv-name">${esc(g.displayName||"Untitled household")}</div>
+        <div class="inv-evs">${evs.length?evs.map(e=>esc(e)).join(" · "):"not invited to either event yet"}</div>
+        <div class="inv-code">code <code>${esc(g.token)}</code></div>
+        <div class="inv-btns">
+          <button class="mini-add" style="margin:0" data-act="copylink">Copy link</button>
+          <button class="mini-add" style="margin:0" data-act="downloadqr">Download QR</button>
+        </div>
+      </div>
+    </div>`;
+  }).join("");
+  return `<div class="view">${top}${actions}<div class="inv-grid">${cards}</div></div>`;
+}
+function wireInvites(){
+  const root=$("#viewRoot");
+  root.querySelectorAll("[data-act='publish']").forEach(b=>b.addEventListener("click",publishInvites));
+  root.querySelectorAll("[data-act='refreshrsvp']").forEach(b=>b.addEventListener("click",refreshRsvps));
+  root.querySelectorAll(".inv-card").forEach(card=>{
+    const token=card.dataset.token, mono=card.dataset.mono;
+    const cont=card.querySelector(".qr");
+    drawQR(cont, inviteLink(token), mono);
+    card.querySelectorAll("[data-act='copylink']").forEach(b=>b.addEventListener("click",()=>{
+      const link=inviteLink(token);
+      if(navigator.clipboard){ navigator.clipboard.writeText(link).then(()=>toast("Link copied")); }
+      else { prompt("Copy this link:", link); }
+    }));
+    card.querySelectorAll("[data-act='downloadqr']").forEach(b=>b.addEventListener("click",()=>{
+      const canvas=cont.querySelector("canvas"); if(!canvas){ toast("QR still rendering, try again."); return; }
+      const a=document.createElement("a");
+      a.href=canvas.toDataURL("image/png"); a.download="qr-"+token+".png"; a.click();
+    }));
+  });
+}
+
 function renderSoon(v){
   const blurbs={
     Details:"Every decision in one place — what's locked, what's still open — with the guest-safe ones flagged for the future site."
@@ -1207,6 +1346,7 @@ function wireCurrent(v){
   if(v==="Guests") wireGuests();
   if(v==="Guide") wireGuide();
   if(v==="Details") wireDetails();
+  if(v==="Invites") wireInvites();
 }
 function wireHome(){
   const root=$("#viewRoot");
